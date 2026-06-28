@@ -1,5 +1,6 @@
 # Local source material and generated artifacts
 *.pdf
+*.vsdx
 *.docx
 *.xlsx
 *.pptx

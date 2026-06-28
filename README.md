@@ -41,6 +41,9 @@
 - `docs/prelaunch/10_Codex工程协作指南.md`
 - `docs/prelaunch/11_系统功能汇总与需求分析报告.md`
 - `docs/prelaunch/12_质量配置变更与发布管理计划.md`
+- `docs/prelaunch/13_设备清单与电气连接设计.md`
+- `docs/prelaunch/14_MVP开发任务清单.md`
+- `docs/prelaunch/15_技术实施路线图.md`
 - `AGENTS.md`
 - `ANONYMIZATION.md`
 - `CONTRIBUTING.md`
@@ -91,6 +94,8 @@ This repository uses a more disciplined workflow:
 ### How To Use
 
 Start with `docs/prelaunch/00_文档清单与使用说明.md`. If you are productizing your own engineering experience, review `02_PRD`, `03_SRS`, and `10_Codex工程协作指南`, then replace the functional domains, risks, and acceptance criteria with your own domain context.
+
+For implementation planning, continue with `14_MVP开发任务清单.md` and `15_技术实施路线图.md`. They translate the documentation package into executable MVP tasks and a first technical roadmap.
 
 ### Disclaimer
 
