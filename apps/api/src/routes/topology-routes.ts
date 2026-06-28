@@ -5,9 +5,13 @@ import type {
   DevicePort,
   DisplayTarget,
   LayoutTemplate,
+  MediaAsset,
+  Patient,
+  RecordingTask,
   Room,
   RouteSession,
-  SignalSource
+  SignalSource,
+  SurgeryCase
 } from "@or-media-console/shared";
 import { RepositoryError, type TopologyRepository } from "../repositories/topology-repository";
 
@@ -253,6 +257,110 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
 
   app.delete<{ Params: { layoutId: string } }>("/api/layouts/:layoutId", async (request, reply) =>
     withRepositoryError(reply, () => topologyResponse(repository.deleteLayoutTemplate(request.params.layoutId), repository))
+  );
+
+  app.get("/api/clinical/patients", async () => repository.getCatalog().patients);
+
+  app.post<{ Body: Patient }>("/api/clinical/patients", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.upsertPatient(request.body), repository))
+  );
+
+  app.put<{ Params: { patientId: string }; Body: Patient }>("/api/clinical/patients/:patientId", async (request, reply) =>
+    withRepositoryError(reply, () =>
+      topologyResponse(
+        repository.upsertPatient({
+          ...request.body,
+          id: request.params.patientId
+        }),
+        repository
+      )
+    )
+  );
+
+  app.delete<{ Params: { patientId: string } }>("/api/clinical/patients/:patientId", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.deletePatient(request.params.patientId), repository))
+  );
+
+  app.get("/api/clinical/surgeries", async () => repository.getCatalog().surgeries);
+
+  app.post<{ Body: SurgeryCase }>("/api/clinical/surgeries", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.upsertSurgery(request.body), repository))
+  );
+
+  app.put<{ Params: { surgeryId: string }; Body: SurgeryCase }>("/api/clinical/surgeries/:surgeryId", async (request, reply) =>
+    withRepositoryError(reply, () =>
+      topologyResponse(
+        repository.upsertSurgery({
+          ...request.body,
+          id: request.params.surgeryId
+        }),
+        repository
+      )
+    )
+  );
+
+  app.delete<{ Params: { surgeryId: string } }>("/api/clinical/surgeries/:surgeryId", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.deleteSurgery(request.params.surgeryId), repository))
+  );
+
+  app.get("/api/recordings", async () => repository.getCatalog().recordingTasks);
+
+  app.post<{ Body: Partial<RecordingTask> & Pick<RecordingTask, "surgeryId" | "sourceId" | "storageVolumeId"> }>(
+    "/api/recordings/start",
+    async (request, reply) =>
+      withRepositoryError(reply, () => {
+        const startedAt = request.body.startedAt ?? new Date().toISOString();
+        const recording: RecordingTask = {
+          id: request.body.id ?? `REC-${Date.now()}`,
+          surgeryId: request.body.surgeryId,
+          sourceId: request.body.sourceId,
+          storageVolumeId: request.body.storageVolumeId,
+          status: "recording",
+          muted: request.body.muted ?? false,
+          startedAt,
+          durationSeconds: request.body.durationSeconds ?? 0
+        };
+
+        return topologyResponse(repository.startRecording(recording), repository);
+      })
+  );
+
+  app.post<{ Params: { recordingId: string } }>("/api/recordings/:recordingId/pause", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.pauseRecording(request.params.recordingId), repository))
+  );
+
+  app.post<{ Params: { recordingId: string } }>("/api/recordings/:recordingId/resume", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.resumeRecording(request.params.recordingId), repository))
+  );
+
+  app.post<{ Params: { recordingId: string } }>("/api/recordings/:recordingId/stop", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.stopRecording(request.params.recordingId), repository))
+  );
+
+  app.post<{ Params: { recordingId: string } }>("/api/recordings/:recordingId/fail", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.failRecording(request.params.recordingId), repository))
+  );
+
+  app.get("/api/media-assets", async () => repository.getCatalog().mediaAssets);
+
+  app.post<{ Body: MediaAsset }>("/api/media-assets", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.upsertMediaAsset(request.body), repository))
+  );
+
+  app.put<{ Params: { assetId: string }; Body: MediaAsset }>("/api/media-assets/:assetId", async (request, reply) =>
+    withRepositoryError(reply, () =>
+      topologyResponse(
+        repository.upsertMediaAsset({
+          ...request.body,
+          id: request.params.assetId
+        }),
+        repository
+      )
+    )
+  );
+
+  app.delete<{ Params: { assetId: string } }>("/api/media-assets/:assetId", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.deleteMediaAsset(request.params.assetId), repository))
   );
 }
 

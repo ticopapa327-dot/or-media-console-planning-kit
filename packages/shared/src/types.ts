@@ -30,6 +30,14 @@ export type RouteStatus = "active" | "disconnected" | "failed";
 
 export type LayoutMode = "single" | "pip" | "pbp_quad";
 
+export type SurgeryStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
+
+export type RecordingStatus = "recording" | "paused" | "stopped" | "failed";
+
+export type MediaAssetType = "video" | "snapshot" | "document";
+
+export type ChecksumStatus = "pending" | "verified" | "failed";
+
 export interface Room {
   id: string;
   name: string;
@@ -116,6 +124,52 @@ export interface LayoutTemplate {
   slots: LayoutSlot[];
 }
 
+export interface Patient {
+  id: string;
+  medicalRecordNo: string;
+  name: string;
+  sex?: string;
+  age?: number;
+  department?: string;
+}
+
+export interface SurgeryCase {
+  id: string;
+  patientId: string;
+  roomId: string;
+  scheduledAt: string;
+  procedureName: string;
+  surgeon: string;
+  status: SurgeryStatus;
+}
+
+export interface RecordingTask {
+  id: string;
+  surgeryId: string;
+  sourceId: string;
+  storageVolumeId: string;
+  status: RecordingStatus;
+  muted: boolean;
+  startedAt: string;
+  pausedAt?: string;
+  endedAt?: string;
+  durationSeconds: number;
+}
+
+export interface MediaAsset {
+  id: string;
+  surgeryId: string;
+  patientId: string;
+  recordingTaskId?: string;
+  type: MediaAssetType;
+  title: string;
+  storageVolumeId: string;
+  path: string;
+  sizeMb: number;
+  checksumStatus: ChecksumStatus;
+  createdAt: string;
+}
+
 export interface TopologyCatalog {
   version: string;
   generatedFrom: string;
@@ -127,6 +181,10 @@ export interface TopologyCatalog {
   storageVolumes: StorageVolume[];
   routeSessions: RouteSession[];
   layoutTemplates: LayoutTemplate[];
+  patients: Patient[];
+  surgeries: SurgeryCase[];
+  recordingTasks: RecordingTask[];
+  mediaAssets: MediaAsset[];
 }
 
 export interface TopologySummary {
@@ -137,6 +195,10 @@ export interface TopologySummary {
   displayTargetCount: number;
   activeRouteCount: number;
   layoutTemplateCount: number;
+  patientCount: number;
+  surgeryCount: number;
+  activeRecordingCount: number;
+  mediaAssetCount: number;
   storageUsableGb: number;
   degradedDeviceCount: number;
   offlineDeviceCount: number;

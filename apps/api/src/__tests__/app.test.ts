@@ -182,6 +182,105 @@ describe("API app", () => {
     expect(response.statusCode).toBe(409);
     expect(body.error).toBe("ROUTE_TARGET_OCCUPIED");
   });
+
+  it("creates patient and surgery records through clinical endpoints", async () => {
+    const app = await createApp();
+    const patientResponse = await app.inject({
+      method: "POST",
+      url: "/api/clinical/patients",
+      payload: {
+        id: "PAT-TEST-001",
+        medicalRecordNo: "MRN-TEST-001",
+        name: "测试患者",
+        sex: "未指定",
+        age: 0,
+        department: "测试科室"
+      }
+    });
+
+    expect(patientResponse.statusCode).toBe(200);
+
+    const surgeryResponse = await app.inject({
+      method: "POST",
+      url: "/api/clinical/surgeries",
+      payload: {
+        id: "SURG-TEST-001",
+        patientId: "PAT-TEST-001",
+        roomId: "room-or-standard",
+        scheduledAt: "2026-06-29T10:00:00.000Z",
+        procedureName: "测试术式",
+        surgeon: "测试医生",
+        status: "scheduled"
+      }
+    });
+    const body = surgeryResponse.json();
+
+    expect(surgeryResponse.statusCode).toBe(200);
+    expect(body.summary.patientCount).toBe(2);
+    expect(body.summary.surgeryCount).toBe(2);
+  });
+
+  it("runs the recording task state machine and creates media on stop", async () => {
+    const app = await createApp();
+    const started = await app.inject({
+      method: "POST",
+      url: "/api/recordings/start",
+      payload: {
+        id: "REC-TEST-001",
+        surgeryId: "SURG-DEMO-001",
+        sourceId: "SRC-DSA-CT",
+        storageVolumeId: "VOL-REC-PRIMARY",
+        startedAt: "2026-06-29T10:00:00.000Z"
+      }
+    });
+
+    expect(started.statusCode).toBe(200);
+    expect(started.json().summary.activeRecordingCount).toBe(1);
+
+    const paused = await app.inject({ method: "POST", url: "/api/recordings/REC-TEST-001/pause" });
+    expect(paused.statusCode).toBe(200);
+    expect(paused.json().summary.activeRecordingCount).toBe(1);
+
+    const resumed = await app.inject({ method: "POST", url: "/api/recordings/REC-TEST-001/resume" });
+    expect(resumed.statusCode).toBe(200);
+
+    const stopped = await app.inject({ method: "POST", url: "/api/recordings/REC-TEST-001/stop" });
+    const stoppedBody = stopped.json();
+
+    expect(stopped.statusCode).toBe(200);
+    expect(stoppedBody.summary.activeRecordingCount).toBe(0);
+    expect(stoppedBody.catalog.mediaAssets.some((asset: { id: string }) => asset.id === "MEDIA-REC-TEST-001")).toBe(true);
+  });
+
+  it("rejects duplicate active recordings for the same source", async () => {
+    const app = await createApp();
+
+    await app.inject({
+      method: "POST",
+      url: "/api/recordings/start",
+      payload: {
+        id: "REC-CONFLICT-001",
+        surgeryId: "SURG-DEMO-001",
+        sourceId: "SRC-DSA-CT",
+        storageVolumeId: "VOL-REC-PRIMARY"
+      }
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/recordings/start",
+      payload: {
+        id: "REC-CONFLICT-002",
+        surgeryId: "SURG-DEMO-001",
+        sourceId: "SRC-DSA-CT",
+        storageVolumeId: "VOL-REC-PRIMARY"
+      }
+    });
+    const body = response.json();
+
+    expect(response.statusCode).toBe(409);
+    expect(body.error).toBe("SOURCE_ALREADY_RECORDING");
+  });
 });
 
 describe("FileTopologyRepository", () => {

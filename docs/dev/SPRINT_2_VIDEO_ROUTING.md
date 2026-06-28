@@ -13,6 +13,10 @@ Sprint 2 implements the core of `MVP-008` to `MVP-011`:
 - Expose route create, update, disconnect and delete APIs.
 - Add route controls to the web console.
 
+## Status
+
+Completed in commit `01b4897`.
+
 ## Route Model
 
 `RouteSession` represents one assignment from a signal source to a display target:

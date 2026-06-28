@@ -693,5 +693,54 @@ export const STANDARD_TOPOLOGY: TopologyCatalog = {
         { slot: "4", sourceId: "SRC-MONITOR" }
       ]
     }
+  ],
+  patients: [
+    {
+      id: "PAT-DEMO-001",
+      medicalRecordNo: "MRN-DEMO-001",
+      name: "演示患者",
+      sex: "未指定",
+      age: 0,
+      department: "演示科室"
+    }
+  ],
+  surgeries: [
+    {
+      id: "SURG-DEMO-001",
+      patientId: "PAT-DEMO-001",
+      roomId: "room-or-standard",
+      scheduledAt: "2026-06-29T08:00:00.000Z",
+      procedureName: "演示术式",
+      surgeon: "演示医生",
+      status: "scheduled"
+    }
+  ],
+  recordingTasks: [
+    {
+      id: "REC-DEMO-001",
+      surgeryId: "SURG-DEMO-001",
+      sourceId: "SRC-ENDOSCOPE",
+      storageVolumeId: "VOL-REC-PRIMARY",
+      status: "stopped",
+      muted: false,
+      startedAt: "2026-06-29T08:30:00.000Z",
+      endedAt: "2026-06-29T09:00:00.000Z",
+      durationSeconds: 1800
+    }
+  ],
+  mediaAssets: [
+    {
+      id: "MEDIA-DEMO-001",
+      surgeryId: "SURG-DEMO-001",
+      patientId: "PAT-DEMO-001",
+      recordingTaskId: "REC-DEMO-001",
+      type: "video",
+      title: "演示腔镜录制",
+      storageVolumeId: "VOL-REC-PRIMARY",
+      path: "media/demo/MEDIA-DEMO-001.mp4",
+      sizeMb: 512,
+      checksumStatus: "verified",
+      createdAt: "2026-06-29T09:00:00.000Z"
+    }
   ]
 };

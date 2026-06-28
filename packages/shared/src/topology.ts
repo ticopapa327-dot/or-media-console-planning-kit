@@ -14,6 +14,11 @@ export function summarizeTopology(catalog: TopologyCatalog): TopologySummary {
     displayTargetCount: catalog.displayTargets.length,
     activeRouteCount: catalog.routeSessions.filter((route) => route.status === "active").length,
     layoutTemplateCount: catalog.layoutTemplates.length,
+    patientCount: catalog.patients.length,
+    surgeryCount: catalog.surgeries.length,
+    activeRecordingCount: catalog.recordingTasks.filter((recording) => recording.status === "recording" || recording.status === "paused")
+      .length,
+    mediaAssetCount: catalog.mediaAssets.length,
     storageUsableGb,
     degradedDeviceCount: catalog.devices.filter((device) => device.status === "degraded").length,
     offlineDeviceCount: catalog.devices.filter((device) => device.status === "offline").length
@@ -35,8 +40,16 @@ export function validateTopology(catalog: TopologyCatalog): ValidationIssue[] {
   issues.push(...findDuplicateIds("STORAGE_ID_DUPLICATE", "Storage volume", catalog.storageVolumes.map((volume) => volume.id)));
   issues.push(...findDuplicateIds("ROUTE_ID_DUPLICATE", "Route session", catalog.routeSessions.map((route) => route.id)));
   issues.push(...findDuplicateIds("LAYOUT_ID_DUPLICATE", "Layout template", catalog.layoutTemplates.map((layout) => layout.id)));
+  issues.push(...findDuplicateIds("PATIENT_ID_DUPLICATE", "Patient", catalog.patients.map((patient) => patient.id)));
+  issues.push(...findDuplicateIds("SURGERY_ID_DUPLICATE", "Surgery case", catalog.surgeries.map((surgery) => surgery.id)));
+  issues.push(...findDuplicateIds("RECORDING_ID_DUPLICATE", "Recording task", catalog.recordingTasks.map((recording) => recording.id)));
+  issues.push(...findDuplicateIds("MEDIA_ID_DUPLICATE", "Media asset", catalog.mediaAssets.map((asset) => asset.id)));
   const sourceIds = new Set(catalog.signalSources.map((source) => source.id));
   const displayIds = new Set(catalog.displayTargets.map((display) => display.id));
+  const storageIds = new Set(catalog.storageVolumes.map((volume) => volume.id));
+  const patientIds = new Set(catalog.patients.map((patient) => patient.id));
+  const surgeryIds = new Set(catalog.surgeries.map((surgery) => surgery.id));
+  const recordingIds = new Set(catalog.recordingTasks.map((recording) => recording.id));
 
   for (const device of catalog.devices) {
     if (!roomIds.has(device.roomId)) {
@@ -158,6 +171,75 @@ export function validateTopology(catalog: TopologyCatalog): ValidationIssue[] {
           message: `Layout template ${layout.id} references missing source ${slot.sourceId}`
         });
       }
+    }
+  }
+
+  for (const surgery of catalog.surgeries) {
+    if (!patientIds.has(surgery.patientId)) {
+      issues.push({
+        code: "SURGERY_PATIENT_MISSING",
+        message: `Surgery ${surgery.id} references missing patient ${surgery.patientId}`
+      });
+    }
+
+    if (!roomIds.has(surgery.roomId)) {
+      issues.push({
+        code: "SURGERY_ROOM_MISSING",
+        message: `Surgery ${surgery.id} references missing room ${surgery.roomId}`
+      });
+    }
+  }
+
+  for (const recording of catalog.recordingTasks) {
+    if (!surgeryIds.has(recording.surgeryId)) {
+      issues.push({
+        code: "RECORDING_SURGERY_MISSING",
+        message: `Recording ${recording.id} references missing surgery ${recording.surgeryId}`
+      });
+    }
+
+    if (!sourceIds.has(recording.sourceId)) {
+      issues.push({
+        code: "RECORDING_SOURCE_MISSING",
+        message: `Recording ${recording.id} references missing source ${recording.sourceId}`
+      });
+    }
+
+    if (!storageIds.has(recording.storageVolumeId)) {
+      issues.push({
+        code: "RECORDING_STORAGE_MISSING",
+        message: `Recording ${recording.id} references missing storage volume ${recording.storageVolumeId}`
+      });
+    }
+  }
+
+  for (const asset of catalog.mediaAssets) {
+    if (!surgeryIds.has(asset.surgeryId)) {
+      issues.push({
+        code: "MEDIA_SURGERY_MISSING",
+        message: `Media asset ${asset.id} references missing surgery ${asset.surgeryId}`
+      });
+    }
+
+    if (!patientIds.has(asset.patientId)) {
+      issues.push({
+        code: "MEDIA_PATIENT_MISSING",
+        message: `Media asset ${asset.id} references missing patient ${asset.patientId}`
+      });
+    }
+
+    if (asset.recordingTaskId && !recordingIds.has(asset.recordingTaskId)) {
+      issues.push({
+        code: "MEDIA_RECORDING_MISSING",
+        message: `Media asset ${asset.id} references missing recording ${asset.recordingTaskId}`
+      });
+    }
+
+    if (!storageIds.has(asset.storageVolumeId)) {
+      issues.push({
+        code: "MEDIA_STORAGE_MISSING",
+        message: `Media asset ${asset.id} references missing storage volume ${asset.storageVolumeId}`
+      });
     }
   }
 

@@ -13,6 +13,10 @@ describe("standard topology seed", () => {
       displayTargetCount: 3,
       activeRouteCount: 2,
       layoutTemplateCount: 3,
+      patientCount: 1,
+      surgeryCount: 1,
+      activeRecordingCount: 0,
+      mediaAssetCount: 1,
       offlineDeviceCount: 0
     });
   });
@@ -43,6 +47,19 @@ describe("standard topology seed", () => {
           createdBy: "test",
           startedAt: "2026-06-29T00:00:00.000Z"
         }
+      ],
+      recordingTasks: [
+        ...STANDARD_TOPOLOGY.recordingTasks,
+        {
+          id: "REC-BROKEN",
+          surgeryId: "missing-surgery",
+          sourceId: "missing-source",
+          storageVolumeId: "missing-storage",
+          status: "recording",
+          muted: false,
+          startedAt: "2026-06-29T00:00:00.000Z",
+          durationSeconds: 0
+        }
       ]
     };
     const codes = validateTopology(brokenCatalog).map((issue) => issue.code);
@@ -52,5 +69,7 @@ describe("standard topology seed", () => {
     expect(codes).toContain("CONNECTION_TO_DEVICE_MISSING");
     expect(codes).toContain("ROUTE_SOURCE_MISSING");
     expect(codes).toContain("ROUTE_TARGET_MISSING");
+    expect(codes).toContain("RECORDING_SURGERY_MISSING");
+    expect(codes).toContain("RECORDING_STORAGE_MISSING");
   });
 });

@@ -223,7 +223,7 @@ nav {
 
 .metricGrid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -348,6 +348,19 @@ nav {
   min-height: 34px;
 }
 
+.toggleField {
+  align-items: center;
+  color: #52656e;
+  display: flex;
+  font-weight: 800;
+  gap: 8px;
+}
+
+.toggleField input {
+  min-height: auto;
+  width: auto;
+}
+
 .buttonRow {
   align-items: end;
   display: flex;
@@ -358,6 +371,37 @@ nav {
 
 .listHeader {
   margin-top: 4px;
+}
+
+.caseList {
+  display: grid;
+  gap: 8px;
+  margin: -4px 0 18px;
+}
+
+.caseRow {
+  align-items: center;
+  background: #f8fbfb;
+  border: 1px solid #dbe4e4;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, auto) auto;
+  padding: 10px 12px;
+}
+
+.caseRow span {
+  color: #52656e;
+}
+
+.caseRow em {
+  background: #ecf3f6;
+  border-radius: 999px;
+  color: #28666e;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  padding: 5px 8px;
 }
 
 .secondarySection {
@@ -415,13 +459,15 @@ nav {
 }
 
 .routeList,
-.layoutList {
+.layoutList,
+.mediaList {
   display: grid;
   gap: 10px;
 }
 
 .routeRow,
-.layoutRow {
+.layoutRow,
+.mediaRow {
   border: 1px solid #dbe4e4;
   border-radius: 8px;
   display: grid;
@@ -470,6 +516,34 @@ nav {
 }
 
 .layoutRow button svg {
+  height: 16px;
+  width: 16px;
+}
+
+.mediaMeta {
+  color: #667983;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mediaRow button {
+  align-items: center;
+  background: #e6f6ef;
+  border: 1px solid #b8d9ca;
+  border-radius: 7px;
+  color: #0f6f55;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  min-height: 36px;
+}
+
+.mediaRow button svg {
   height: 16px;
   width: 16px;
 }
@@ -562,7 +636,7 @@ nav {
 
 @media (max-width: 1180px) {
   .metricGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .workspace {
@@ -626,5 +700,9 @@ nav {
 
   .connectionActions {
     grid-template-columns: 1fr 38px 38px;
+  }
+
+  .caseRow {
+    grid-template-columns: 1fr;
   }
 }

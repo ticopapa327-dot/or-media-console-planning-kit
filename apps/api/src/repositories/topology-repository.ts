@@ -7,10 +7,13 @@ import {
   type DevicePort,
   type DisplayTarget,
   type LayoutTemplate,
+  type MediaAsset,
+  type Patient,
+  type RecordingTask,
   type Room,
   type RouteSession,
   type SignalSource,
-  type StorageVolume,
+  type SurgeryCase,
   type TopologyCatalog,
   type TopologySummary,
   type ValidationIssue
@@ -41,6 +44,17 @@ export interface TopologyRepository {
   deleteRouteSession(routeId: string): TopologyCatalog;
   upsertLayoutTemplate(layout: LayoutTemplate): TopologyCatalog;
   deleteLayoutTemplate(layoutId: string): TopologyCatalog;
+  upsertPatient(patient: Patient): TopologyCatalog;
+  deletePatient(patientId: string): TopologyCatalog;
+  upsertSurgery(surgery: SurgeryCase): TopologyCatalog;
+  deleteSurgery(surgeryId: string): TopologyCatalog;
+  startRecording(recording: RecordingTask): TopologyCatalog;
+  pauseRecording(recordingId: string, pausedAt?: string): TopologyCatalog;
+  resumeRecording(recordingId: string): TopologyCatalog;
+  stopRecording(recordingId: string, endedAt?: string): TopologyCatalog;
+  failRecording(recordingId: string, endedAt?: string): TopologyCatalog;
+  upsertMediaAsset(asset: MediaAsset): TopologyCatalog;
+  deleteMediaAsset(assetId: string): TopologyCatalog;
 }
 
 export class InMemoryTopologyRepository implements TopologyRepository {
@@ -226,6 +240,157 @@ export class InMemoryTopologyRepository implements TopologyRepository {
     });
   }
 
+  upsertPatient(patient: Patient): TopologyCatalog {
+    return this.save(upsertById(this.catalog, "patients", patient));
+  }
+
+  deletePatient(patientId: string): TopologyCatalog {
+    const isReferenced =
+      this.catalog.surgeries.some((surgery) => surgery.patientId === patientId) ||
+      this.catalog.mediaAssets.some((asset) => asset.patientId === patientId);
+
+    if (isReferenced) {
+      throw new RepositoryError(409, "PATIENT_IS_REFERENCED", `Patient ${patientId} is still referenced`);
+    }
+
+    return this.save({
+      ...this.catalog,
+      patients: this.catalog.patients.filter((patient) => patient.id !== patientId)
+    });
+  }
+
+  upsertSurgery(surgery: SurgeryCase): TopologyCatalog {
+    return this.save(upsertById(this.catalog, "surgeries", surgery));
+  }
+
+  deleteSurgery(surgeryId: string): TopologyCatalog {
+    const isReferenced =
+      this.catalog.recordingTasks.some((recording) => recording.surgeryId === surgeryId) ||
+      this.catalog.mediaAssets.some((asset) => asset.surgeryId === surgeryId);
+
+    if (isReferenced) {
+      throw new RepositoryError(409, "SURGERY_IS_REFERENCED", `Surgery ${surgeryId} is still referenced`);
+    }
+
+    return this.save({
+      ...this.catalog,
+      surgeries: this.catalog.surgeries.filter((surgery) => surgery.id !== surgeryId)
+    });
+  }
+
+  startRecording(recording: RecordingTask): TopologyCatalog {
+    if (
+      this.catalog.recordingTasks.some(
+        (candidate) =>
+          candidate.id !== recording.id &&
+          candidate.sourceId === recording.sourceId &&
+          (candidate.status === "recording" || candidate.status === "paused")
+      )
+    ) {
+      throw new RepositoryError(409, "SOURCE_ALREADY_RECORDING", `Signal source ${recording.sourceId} already has an active recording`);
+    }
+
+    return this.save(upsertById(this.catalog, "recordingTasks", recording));
+  }
+
+  pauseRecording(recordingId: string, pausedAt = new Date().toISOString()): TopologyCatalog {
+    const recording = this.getRecordingOrThrow(recordingId);
+
+    if (recording.status !== "recording") {
+      throw new RepositoryError(409, "RECORDING_NOT_ACTIVE", `Recording ${recordingId} is not active`);
+    }
+
+    return this.save({
+      ...this.catalog,
+      recordingTasks: this.catalog.recordingTasks.map((candidate) =>
+        candidate.id === recordingId ? { ...candidate, status: "paused", pausedAt } : candidate
+      )
+    });
+  }
+
+  resumeRecording(recordingId: string): TopologyCatalog {
+    const recording = this.getRecordingOrThrow(recordingId);
+
+    if (recording.status !== "paused") {
+      throw new RepositoryError(409, "RECORDING_NOT_PAUSED", `Recording ${recordingId} is not paused`);
+    }
+
+    return this.save({
+      ...this.catalog,
+      recordingTasks: this.catalog.recordingTasks.map((candidate) =>
+        candidate.id === recordingId ? { ...candidate, status: "recording", pausedAt: undefined } : candidate
+      )
+    });
+  }
+
+  stopRecording(recordingId: string, endedAt = new Date().toISOString()): TopologyCatalog {
+    const recording = this.getRecordingOrThrow(recordingId);
+
+    if (recording.status !== "recording" && recording.status !== "paused") {
+      throw new RepositoryError(409, "RECORDING_NOT_RUNNING", `Recording ${recordingId} is not running`);
+    }
+
+    const surgery = this.catalog.surgeries.find((candidate) => candidate.id === recording.surgeryId);
+    const assetId = `MEDIA-${recording.id}`;
+    const durationSeconds = Math.max(Math.round((Date.parse(endedAt) - Date.parse(recording.startedAt)) / 1000), recording.durationSeconds);
+    const mediaAsset: MediaAsset = {
+      id: assetId,
+      surgeryId: recording.surgeryId,
+      patientId: surgery?.patientId ?? "unknown-patient",
+      recordingTaskId: recording.id,
+      type: "video",
+      title: `${recording.id} 录制文件`,
+      storageVolumeId: recording.storageVolumeId,
+      path: `media/${recording.surgeryId}/${assetId}.mp4`,
+      sizeMb: Math.max(Math.round(durationSeconds / 60) * 64, 64),
+      checksumStatus: "pending",
+      createdAt: endedAt
+    };
+
+    return this.save({
+      ...this.catalog,
+      recordingTasks: this.catalog.recordingTasks.map((candidate) =>
+        candidate.id === recordingId ? { ...candidate, status: "stopped", endedAt, durationSeconds } : candidate
+      ),
+      mediaAssets: upsertListById(this.catalog.mediaAssets, mediaAsset),
+      storageVolumes: this.catalog.storageVolumes.map((volume) =>
+        volume.id === recording.storageVolumeId ? { ...volume, usedGb: volume.usedGb + Math.ceil(mediaAsset.sizeMb / 1024) } : volume
+      )
+    });
+  }
+
+  failRecording(recordingId: string, endedAt = new Date().toISOString()): TopologyCatalog {
+    this.getRecordingOrThrow(recordingId);
+
+    return this.save({
+      ...this.catalog,
+      recordingTasks: this.catalog.recordingTasks.map((candidate) =>
+        candidate.id === recordingId ? { ...candidate, status: "failed", endedAt } : candidate
+      )
+    });
+  }
+
+  upsertMediaAsset(asset: MediaAsset): TopologyCatalog {
+    return this.save(upsertById(this.catalog, "mediaAssets", asset));
+  }
+
+  deleteMediaAsset(assetId: string): TopologyCatalog {
+    return this.save({
+      ...this.catalog,
+      mediaAssets: this.catalog.mediaAssets.filter((asset) => asset.id !== assetId)
+    });
+  }
+
+  private getRecordingOrThrow(recordingId: string): RecordingTask {
+    const recording = this.catalog.recordingTasks.find((candidate) => candidate.id === recordingId);
+
+    if (!recording) {
+      throw new RepositoryError(404, "RECORDING_NOT_FOUND", `Recording ${recordingId} was not found`);
+    }
+
+    return recording;
+  }
+
   protected save(catalog: TopologyCatalog): TopologyCatalog {
     const issues = validateTopology(catalog);
 
@@ -287,7 +452,11 @@ function normalizeCatalog(catalog: Partial<TopologyCatalog>): TopologyCatalog {
     displayTargets: catalog.displayTargets ?? [],
     storageVolumes: catalog.storageVolumes ?? [],
     routeSessions: catalog.routeSessions ?? [],
-    layoutTemplates: catalog.layoutTemplates ?? []
+    layoutTemplates: catalog.layoutTemplates ?? [],
+    patients: catalog.patients ?? [],
+    surgeries: catalog.surgeries ?? [],
+    recordingTasks: catalog.recordingTasks ?? [],
+    mediaAssets: catalog.mediaAssets ?? []
   };
 }
 

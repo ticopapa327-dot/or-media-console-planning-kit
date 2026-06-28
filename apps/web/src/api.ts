@@ -4,8 +4,12 @@ import {
   type Connection,
   type Device,
   type LayoutTemplate,
+  type MediaAsset,
+  type Patient,
+  type RecordingTask,
   type Room,
   type RouteSession,
+  type SurgeryCase,
   type TopologyCatalog,
   type TopologySummary
 } from "@or-media-console/shared";
@@ -130,6 +134,72 @@ export async function saveLayout(layout: LayoutTemplate): Promise<TopologyRespon
   return sendTopologyRequest(`/api/layouts/${encodeURIComponent(layout.id)}`, {
     method: "PUT",
     body: JSON.stringify(layout)
+  });
+}
+
+export async function createPatient(patient: Patient): Promise<TopologyResponse> {
+  return sendTopologyRequest("/api/clinical/patients", {
+    method: "POST",
+    body: JSON.stringify(patient)
+  });
+}
+
+export async function savePatient(patient: Patient): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/clinical/patients/${encodeURIComponent(patient.id)}`, {
+    method: "PUT",
+    body: JSON.stringify(patient)
+  });
+}
+
+export async function createSurgery(surgery: SurgeryCase): Promise<TopologyResponse> {
+  return sendTopologyRequest("/api/clinical/surgeries", {
+    method: "POST",
+    body: JSON.stringify(surgery)
+  });
+}
+
+export async function saveSurgery(surgery: SurgeryCase): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/clinical/surgeries/${encodeURIComponent(surgery.id)}`, {
+    method: "PUT",
+    body: JSON.stringify(surgery)
+  });
+}
+
+export async function startRecording(recording: Pick<RecordingTask, "surgeryId" | "sourceId" | "storageVolumeId"> & Partial<RecordingTask>) {
+  return sendTopologyRequest("/api/recordings/start", {
+    method: "POST",
+    body: JSON.stringify(recording)
+  });
+}
+
+export async function pauseRecording(recordingId: string): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/recordings/${encodeURIComponent(recordingId)}/pause`, {
+    method: "POST"
+  });
+}
+
+export async function resumeRecording(recordingId: string): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/recordings/${encodeURIComponent(recordingId)}/resume`, {
+    method: "POST"
+  });
+}
+
+export async function stopRecording(recordingId: string): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/recordings/${encodeURIComponent(recordingId)}/stop`, {
+    method: "POST"
+  });
+}
+
+export async function failRecording(recordingId: string): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/recordings/${encodeURIComponent(recordingId)}/fail`, {
+    method: "POST"
+  });
+}
+
+export async function saveMediaAsset(asset: MediaAsset): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/media-assets/${encodeURIComponent(asset.id)}`, {
+    method: "PUT",
+    body: JSON.stringify(asset)
   });
 }
 
