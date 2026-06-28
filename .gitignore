@@ -1,0 +1,22 @@
+# Local source material and generated artifacts
+*.pdf
+*.docx
+*.xlsx
+*.pptx
+*.zip
+*.7z
+*.rar
+tmp/
+output/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Runtime/cache
+node_modules/
+.env
+.env.*
+*.log
