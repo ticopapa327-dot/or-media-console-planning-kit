@@ -2,10 +2,13 @@ import {
   STANDARD_TOPOLOGY,
   summarizeTopology,
   validateTopology,
+  type AlertSeverity,
+  type AuditLogEntry,
   type Connection,
   type Device,
   type DevicePort,
   type DisplayTarget,
+  type GovernanceEntityType,
   type AudioEndpoint,
   type LayoutTemplate,
   type MediaAsset,
@@ -17,6 +20,8 @@ import {
   type Room,
   type RouteSession,
   type SignalSource,
+  type StatusEvent,
+  type SystemAlert,
   type SurgeryCase,
   type TopologyCatalog,
   type UserAccount,
@@ -71,6 +76,11 @@ export interface TopologyRepository {
   deleteRemoteEndpoint(endpointId: string): TopologyCatalog;
   upsertAudioEndpoint(endpoint: AudioEndpoint): TopologyCatalog;
   deleteAudioEndpoint(endpointId: string): TopologyCatalog;
+  appendAuditLog(entry: AuditLogEntry): TopologyCatalog;
+  upsertSystemAlert(alert: SystemAlert): TopologyCatalog;
+  acknowledgeSystemAlert(alertId: string, acknowledgedBy: string, acknowledgedAt?: string): TopologyCatalog;
+  resolveSystemAlert(alertId: string, resolvedBy: string, resolvedAt?: string): TopologyCatalog;
+  appendStatusEvent(event: StatusEvent): TopologyCatalog;
 }
 
 export class InMemoryTopologyRepository implements TopologyRepository {
@@ -114,7 +124,11 @@ export class InMemoryTopologyRepository implements TopologyRepository {
   }
 
   upsertDevice(device: Device): TopologyCatalog {
-    return this.save(upsertById(this.catalog, "devices", device));
+    const existing = this.catalog.devices.find((candidate) => candidate.id === device.id);
+    const nextCatalog = upsertById(this.catalog, "devices", device);
+    return this.save(
+      withStatusEventForChange(nextCatalog, "device", device.id, existing?.status, device.status, `设备 ${device.id} 状态变更`)
+    );
   }
 
   deleteDevice(deviceId: string): TopologyCatalog {
@@ -456,7 +470,18 @@ export class InMemoryTopologyRepository implements TopologyRepository {
   }
 
   upsertRemoteEndpoint(endpoint: RemoteEndpoint): TopologyCatalog {
-    return this.save(upsertById(this.catalog, "remoteEndpoints", endpoint));
+    const existing = this.catalog.remoteEndpoints.find((candidate) => candidate.id === endpoint.id);
+    const nextCatalog = upsertById(this.catalog, "remoteEndpoints", endpoint);
+    return this.save(
+      withStatusEventForChange(
+        nextCatalog,
+        "remote_endpoint",
+        endpoint.id,
+        existing?.status,
+        endpoint.status,
+        `远程端 ${endpoint.id} 状态变更`
+      )
+    );
   }
 
   deleteRemoteEndpoint(endpointId: string): TopologyCatalog {
@@ -467,15 +492,70 @@ export class InMemoryTopologyRepository implements TopologyRepository {
   }
 
   upsertAudioEndpoint(endpoint: AudioEndpoint): TopologyCatalog {
+    const existing = this.catalog.audioEndpoints.find((candidate) => candidate.id === endpoint.id);
     const normalizedVolume = Math.min(Math.max(endpoint.volume, 0), 100);
     const normalizedEndpoint: AudioEndpoint = { ...endpoint, volume: normalizedVolume };
-    return this.save(upsertById(this.catalog, "audioEndpoints", normalizedEndpoint));
+    const nextCatalog = upsertById(this.catalog, "audioEndpoints", normalizedEndpoint);
+    return this.save(
+      withStatusEventForChange(
+        nextCatalog,
+        "audio_endpoint",
+        endpoint.id,
+        existing?.status,
+        endpoint.status,
+        `音频端点 ${endpoint.id} 状态变更`
+      )
+    );
   }
 
   deleteAudioEndpoint(endpointId: string): TopologyCatalog {
     return this.save({
       ...this.catalog,
       audioEndpoints: this.catalog.audioEndpoints.filter((endpoint) => endpoint.id !== endpointId)
+    });
+  }
+
+  appendAuditLog(entry: AuditLogEntry): TopologyCatalog {
+    return this.save({
+      ...this.catalog,
+      auditLogs: [...this.catalog.auditLogs, entry]
+    });
+  }
+
+  upsertSystemAlert(alert: SystemAlert): TopologyCatalog {
+    return this.save(upsertById(this.catalog, "systemAlerts", alert));
+  }
+
+  acknowledgeSystemAlert(alertId: string, acknowledgedBy: string, acknowledgedAt = new Date().toISOString()): TopologyCatalog {
+    if (!this.catalog.systemAlerts.some((alert) => alert.id === alertId)) {
+      throw new RepositoryError(404, "ALERT_NOT_FOUND", `Alert ${alertId} was not found`);
+    }
+
+    return this.save({
+      ...this.catalog,
+      systemAlerts: this.catalog.systemAlerts.map((alert) =>
+        alert.id === alertId ? { ...alert, status: "acknowledged", acknowledgedBy, acknowledgedAt } : alert
+      )
+    });
+  }
+
+  resolveSystemAlert(alertId: string, resolvedBy: string, resolvedAt = new Date().toISOString()): TopologyCatalog {
+    if (!this.catalog.systemAlerts.some((alert) => alert.id === alertId)) {
+      throw new RepositoryError(404, "ALERT_NOT_FOUND", `Alert ${alertId} was not found`);
+    }
+
+    return this.save({
+      ...this.catalog,
+      systemAlerts: this.catalog.systemAlerts.map((alert) =>
+        alert.id === alertId ? { ...alert, status: "resolved", resolvedBy, resolvedAt } : alert
+      )
+    });
+  }
+
+  appendStatusEvent(event: StatusEvent): TopologyCatalog {
+    return this.save({
+      ...this.catalog,
+      statusEvents: [...this.catalog.statusEvents, event]
     });
   }
 
@@ -559,7 +639,10 @@ function normalizeCatalog(catalog: Partial<TopologyCatalog>): TopologyCatalog {
     meetingSessions: catalog.meetingSessions ?? [],
     meetingMembers: catalog.meetingMembers ?? [],
     remoteEndpoints: catalog.remoteEndpoints ?? [],
-    audioEndpoints: catalog.audioEndpoints ?? []
+    audioEndpoints: catalog.audioEndpoints ?? [],
+    auditLogs: catalog.auditLogs ?? [],
+    systemAlerts: catalog.systemAlerts ?? [],
+    statusEvents: catalog.statusEvents ?? []
   };
 }
 
@@ -588,4 +671,50 @@ function upsertListById<T extends { id: string }>(list: T[], entity: T): T[] {
   }
 
   return list.map((item) => (item.id === entity.id ? entity : item));
+}
+
+function withStatusEventForChange(
+  catalog: TopologyCatalog,
+  entityType: GovernanceEntityType,
+  entityId: string,
+  previousStatus: string | undefined,
+  nextStatus: string,
+  note: string
+): TopologyCatalog {
+  if (!previousStatus || previousStatus === nextStatus) {
+    return catalog;
+  }
+
+  return {
+    ...catalog,
+    statusEvents: [
+      ...catalog.statusEvents,
+      {
+        id: createRuntimeId("STATUS"),
+        entityType,
+        entityId,
+        previousStatus,
+        nextStatus,
+        severity: severityForStatus(nextStatus),
+        occurredAt: new Date().toISOString(),
+        note
+      }
+    ]
+  };
+}
+
+function severityForStatus(status: string): AlertSeverity {
+  if (status === "offline" || status === "failed") {
+    return "critical";
+  }
+
+  if (status === "degraded" || status === "paused" || status === "unknown") {
+    return "warning";
+  }
+
+  return "info";
+}
+
+function createRuntimeId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }

@@ -834,5 +834,40 @@ export const STANDARD_TOPOLOGY: TopologyCatalog = {
       volume: 70,
       status: "online"
     }
+  ],
+  auditLogs: [
+    {
+      id: "AUDIT-SEED-001",
+      actor: "system-seed",
+      action: "topology.seed.loaded",
+      entityType: "topology",
+      entityId: "STANDARD_TOPOLOGY",
+      occurredAt: "2026-06-29T00:00:00.000Z",
+      summary: "标准版拓扑种子数据已加载"
+    }
+  ],
+  systemAlerts: [
+    {
+      id: "ALERT-SEED-001",
+      severity: "warning",
+      status: "open",
+      title: "示教室全景相机降级",
+      message: "设备 TH-CAM-01 当前为降级状态，需要在开放前确认链路质量。",
+      relatedEntityType: "device",
+      relatedEntityId: "TH-CAM-01",
+      createdAt: "2026-06-29T00:05:00.000Z"
+    }
+  ],
+  statusEvents: [
+    {
+      id: "STATUS-SEED-001",
+      entityType: "device",
+      entityId: "TH-CAM-01",
+      previousStatus: "online",
+      nextStatus: "degraded",
+      severity: "warning",
+      occurredAt: "2026-06-29T00:05:00.000Z",
+      note: "示教室全景相机进入降级状态"
+    }
   ]
 };

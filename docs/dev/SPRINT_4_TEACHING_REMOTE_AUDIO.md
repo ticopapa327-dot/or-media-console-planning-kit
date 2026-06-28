@@ -2,6 +2,10 @@
 
 This document records the first teaching, remote access and audio management increment.
 
+## Status
+
+Completed in commit `4e9cfef`.
+
 ## Scope
 
 Sprint 4 implements the core of `MVP-018` to `MVP-021`:

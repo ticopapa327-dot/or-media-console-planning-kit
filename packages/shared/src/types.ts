@@ -48,6 +48,30 @@ export type RemoteDeviceType = "office_pc" | "mobile" | "tablet" | "laptop" | "t
 
 export type AudioEndpointKind = "microphone" | "speaker" | "amplifier";
 
+export type GovernanceEntityType =
+  | "room"
+  | "device"
+  | "connection"
+  | "signal_source"
+  | "display_target"
+  | "route"
+  | "layout"
+  | "patient"
+  | "surgery"
+  | "recording"
+  | "media_asset"
+  | "user"
+  | "meeting"
+  | "meeting_member"
+  | "remote_endpoint"
+  | "audio_endpoint"
+  | "storage_volume"
+  | "topology";
+
+export type AlertSeverity = "info" | "warning" | "critical";
+
+export type AlertStatus = "open" | "acknowledged" | "resolved";
+
 export interface Room {
   id: string;
   name: string;
@@ -228,6 +252,43 @@ export interface AudioEndpoint {
   status: OperationalStatus;
 }
 
+export interface AuditLogEntry {
+  id: string;
+  actor: string;
+  action: string;
+  entityType: GovernanceEntityType;
+  entityId: string;
+  occurredAt: string;
+  summary: string;
+  metadata?: Record<string, string | number | boolean | null>;
+}
+
+export interface SystemAlert {
+  id: string;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  title: string;
+  message: string;
+  relatedEntityType?: GovernanceEntityType;
+  relatedEntityId?: string;
+  createdAt: string;
+  acknowledgedAt?: string;
+  acknowledgedBy?: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+}
+
+export interface StatusEvent {
+  id: string;
+  entityType: GovernanceEntityType;
+  entityId: string;
+  previousStatus?: string;
+  nextStatus: string;
+  severity: AlertSeverity;
+  occurredAt: string;
+  note?: string;
+}
+
 export interface TopologyCatalog {
   version: string;
   generatedFrom: string;
@@ -248,6 +309,9 @@ export interface TopologyCatalog {
   meetingMembers: MeetingMember[];
   remoteEndpoints: RemoteEndpoint[];
   audioEndpoints: AudioEndpoint[];
+  auditLogs: AuditLogEntry[];
+  systemAlerts: SystemAlert[];
+  statusEvents: StatusEvent[];
 }
 
 export interface TopologySummary {
@@ -265,6 +329,10 @@ export interface TopologySummary {
   openMeetingCount: number;
   authorizedRemoteEndpointCount: number;
   audioEndpointCount: number;
+  auditLogCount: number;
+  openAlertCount: number;
+  criticalAlertCount: number;
+  statusEventCount: number;
   storageUsableGb: number;
   degradedDeviceCount: number;
   offlineDeviceCount: number;

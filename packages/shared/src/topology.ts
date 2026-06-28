@@ -22,6 +22,10 @@ export function summarizeTopology(catalog: TopologyCatalog): TopologySummary {
     openMeetingCount: catalog.meetingSessions.filter((meeting) => meeting.status === "open").length,
     authorizedRemoteEndpointCount: catalog.remoteEndpoints.filter((endpoint) => endpoint.authorized).length,
     audioEndpointCount: catalog.audioEndpoints.length,
+    auditLogCount: catalog.auditLogs.length,
+    openAlertCount: catalog.systemAlerts.filter((alert) => alert.status === "open").length,
+    criticalAlertCount: catalog.systemAlerts.filter((alert) => alert.status === "open" && alert.severity === "critical").length,
+    statusEventCount: catalog.statusEvents.length,
     storageUsableGb,
     degradedDeviceCount: catalog.devices.filter((device) => device.status === "degraded").length,
     offlineDeviceCount: catalog.devices.filter((device) => device.status === "offline").length
@@ -52,6 +56,9 @@ export function validateTopology(catalog: TopologyCatalog): ValidationIssue[] {
   issues.push(...findDuplicateIds("MEMBER_ID_DUPLICATE", "Meeting member", catalog.meetingMembers.map((member) => member.id)));
   issues.push(...findDuplicateIds("REMOTE_ENDPOINT_ID_DUPLICATE", "Remote endpoint", catalog.remoteEndpoints.map((endpoint) => endpoint.id)));
   issues.push(...findDuplicateIds("AUDIO_ENDPOINT_ID_DUPLICATE", "Audio endpoint", catalog.audioEndpoints.map((endpoint) => endpoint.id)));
+  issues.push(...findDuplicateIds("AUDIT_ID_DUPLICATE", "Audit log", catalog.auditLogs.map((entry) => entry.id)));
+  issues.push(...findDuplicateIds("ALERT_ID_DUPLICATE", "System alert", catalog.systemAlerts.map((alert) => alert.id)));
+  issues.push(...findDuplicateIds("STATUS_EVENT_ID_DUPLICATE", "Status event", catalog.statusEvents.map((event) => event.id)));
   const sourceIds = new Set(catalog.signalSources.map((source) => source.id));
   const displayIds = new Set(catalog.displayTargets.map((display) => display.id));
   const storageIds = new Set(catalog.storageVolumes.map((volume) => volume.id));
@@ -317,6 +324,22 @@ export function validateTopology(catalog: TopologyCatalog): ValidationIssue[] {
       issues.push({
         code: "AUDIO_ENDPOINT_ROOM_MISSING",
         message: `Audio endpoint ${endpoint.id} references missing room ${endpoint.roomId}`
+      });
+    }
+  }
+
+  for (const alert of catalog.systemAlerts) {
+    if (alert.status === "acknowledged" && (!alert.acknowledgedAt || !alert.acknowledgedBy)) {
+      issues.push({
+        code: "ALERT_ACKNOWLEDGEMENT_INCOMPLETE",
+        message: `Alert ${alert.id} is acknowledged without acknowledgement metadata`
+      });
+    }
+
+    if (alert.status === "resolved" && (!alert.resolvedAt || !alert.resolvedBy)) {
+      issues.push({
+        code: "ALERT_RESOLUTION_INCOMPLETE",
+        message: `Alert ${alert.id} is resolved without resolution metadata`
       });
     }
   }

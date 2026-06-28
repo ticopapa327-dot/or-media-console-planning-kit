@@ -20,6 +20,10 @@ describe("standard topology seed", () => {
       openMeetingCount: 1,
       authorizedRemoteEndpointCount: 1,
       audioEndpointCount: 2,
+      auditLogCount: 1,
+      openAlertCount: 1,
+      criticalAlertCount: 0,
+      statusEventCount: 1,
       offlineDeviceCount: 0
     });
   });
@@ -74,6 +78,17 @@ describe("standard topology seed", () => {
           role: "viewer",
           audioMuted: true
         }
+      ],
+      systemAlerts: [
+        ...STANDARD_TOPOLOGY.systemAlerts,
+        {
+          id: "ALERT-BROKEN",
+          severity: "warning",
+          status: "acknowledged",
+          title: "缺失确认信息",
+          message: "验证告警确认元数据",
+          createdAt: "2026-06-29T00:00:00.000Z"
+        }
       ]
     };
     const codes = validateTopology(brokenCatalog).map((issue) => issue.code);
@@ -87,5 +102,6 @@ describe("standard topology seed", () => {
     expect(codes).toContain("RECORDING_STORAGE_MISSING");
     expect(codes).toContain("MEMBER_MEETING_MISSING");
     expect(codes).toContain("MEMBER_USER_MISSING");
+    expect(codes).toContain("ALERT_ACKNOWLEDGEMENT_INCOMPLETE");
   });
 });

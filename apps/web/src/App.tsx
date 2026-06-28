@@ -1,6 +1,8 @@
 import {
   Activity,
+  AlertTriangle,
   Cable,
+  CheckCircle2,
   Database,
   Monitor,
   Plus,
@@ -14,6 +16,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type {
+  AlertSeverity,
+  AlertStatus,
   AudioEndpoint,
   Connection,
   ConnectionKind,
@@ -39,6 +43,7 @@ import type {
   TopologySummary
 } from "@or-media-console/shared";
 import {
+  acknowledgeAlert,
   createConnection,
   createDevice,
   createMeeting,
@@ -57,6 +62,7 @@ import {
   fetchTopology,
   pauseRecording,
   resetTopology,
+  resolveAlert,
   resumeRecording,
   saveConnection,
   saveDevice,
@@ -180,6 +186,26 @@ function meetingMemberRoleText(role: MeetingMemberRole): string {
   return labels[role];
 }
 
+function alertSeverityText(severity: AlertSeverity): string {
+  const labels: Record<AlertSeverity, string> = {
+    info: "提示",
+    warning: "警告",
+    critical: "严重"
+  };
+
+  return labels[severity];
+}
+
+function alertStatusText(status: AlertStatus): string {
+  const labels: Record<AlertStatus, string> = {
+    open: "待处理",
+    acknowledged: "已确认",
+    resolved: "已解决"
+  };
+
+  return labels[status];
+}
+
 function metricItems(summary: TopologySummary) {
   return [
     { label: "房间", value: summary.roomCount, icon: Workflow },
@@ -193,6 +219,10 @@ function metricItems(summary: TopologySummary) {
     { label: "会议", value: summary.openMeetingCount, icon: RadioTower },
     { label: "远程授权", value: summary.authorizedRemoteEndpointCount, icon: ShieldCheck },
     { label: "音频端点", value: summary.audioEndpointCount, icon: Activity },
+    { label: "未处理告警", value: summary.openAlertCount, icon: AlertTriangle },
+    { label: "严重告警", value: summary.criticalAlertCount, icon: AlertTriangle },
+    { label: "审计", value: summary.auditLogCount, icon: ShieldCheck },
+    { label: "状态事件", value: summary.statusEventCount, icon: Activity },
     { label: "布局", value: summary.layoutTemplateCount, icon: Workflow },
     { label: "可用存储", value: `${summary.storageUsableGb} GB`, icon: Database }
   ];
@@ -345,6 +375,9 @@ export function App() {
   const roomMembers = catalog?.meetingMembers.filter((member) => roomMeetingIds.has(member.meetingId)) ?? [];
   const roomRemoteEndpoints = catalog?.remoteEndpoints.filter((endpoint) => endpoint.roomId === selectedRoom?.id) ?? [];
   const roomAudioEndpoints = catalog?.audioEndpoints.filter((endpoint) => endpoint.roomId === selectedRoom?.id) ?? [];
+  const openAlerts = catalog?.systemAlerts.filter((alert) => alert.status !== "resolved") ?? [];
+  const recentAuditLogs = catalog ? [...catalog.auditLogs].slice(-6).reverse() : [];
+  const recentStatusEvents = catalog ? [...catalog.statusEvents].slice(-5).reverse() : [];
 
   useEffect(() => {
     if (selectedRoom) {
@@ -1301,6 +1334,62 @@ export function App() {
                   <button onClick={() => perform(() => saveAudioEndpoint(endpoint), "音频端点已保存")} type="button">
                     <Save aria-hidden="true" />
                   </button>
+                </article>
+              ))}
+            </div>
+
+            <div className="sectionHeader compact secondarySection">
+              <div>
+                <p className="eyebrow">质量</p>
+                <h2>审计与告警</h2>
+              </div>
+              <span className="pill">{openAlerts.length}</span>
+            </div>
+
+            <div className="qualityList">
+              {openAlerts.map((alert) => (
+                <article className={`qualityRow ${alert.severity}`} key={alert.id}>
+                  <div>
+                    <div className="qualityHeader">
+                      <strong>{alert.title}</strong>
+                      <span>{alertSeverityText(alert.severity)}</span>
+                    </div>
+                    <p>{alert.message}</p>
+                    <div className="mediaMeta">
+                      <span>{alertStatusText(alert.status)}</span>
+                      <span>{alert.relatedEntityId ?? alert.id}</span>
+                    </div>
+                  </div>
+                  <div className="qualityActions">
+                    <button onClick={() => perform(() => acknowledgeAlert(alert.id), "告警已确认")} title="确认告警" type="button">
+                      <ShieldCheck aria-hidden="true" />
+                    </button>
+                    <button onClick={() => perform(() => resolveAlert(alert.id), "告警已解决")} title="解决告警" type="button">
+                      <CheckCircle2 aria-hidden="true" />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="qualityTimeline">
+              <strong>近期审计</strong>
+              {recentAuditLogs.map((entry) => (
+                <article key={entry.id}>
+                  <span>{entry.action}</span>
+                  <p>{entry.summary}</p>
+                </article>
+              ))}
+            </div>
+
+            <div className="qualityTimeline">
+              <strong>状态事件</strong>
+              {recentStatusEvents.map((event) => (
+                <article key={event.id}>
+                  <span>
+                    {event.entityId} · {event.nextStatus}
+                  </span>
+                  <p>{event.note ?? event.occurredAt}</p>
                 </article>
               ))}
             </div>

@@ -28,6 +28,9 @@ describe("API app", () => {
     expect(body.summary.activeRouteCount).toBe(2);
     expect(body.summary.openMeetingCount).toBe(1);
     expect(body.summary.authorizedRemoteEndpointCount).toBe(1);
+    expect(body.summary.openAlertCount).toBe(1);
+    expect(body.summary.auditLogCount).toBe(1);
+    expect(body.summary.statusEventCount).toBe(1);
     expect(body.validation).toEqual([]);
     expect(body.catalog.rooms.map((room: { id: string }) => room.id)).toContain("room-or-standard");
   });
@@ -111,6 +114,7 @@ describe("API app", () => {
 
     expect(response.statusCode).toBe(200);
     expect(body.catalog.devices.find((item: { id: string }) => item.id === "TH-CAM-01").status).toBe("online");
+    expect(body.summary.statusEventCount).toBe(2);
   });
 
   it("resets the topology with an empty POST body", async () => {
@@ -305,6 +309,7 @@ describe("API app", () => {
 
     expect(closed.statusCode).toBe(200);
     expect(closed.json().summary.openMeetingCount).toBe(1);
+    expect(closed.json().catalog.auditLogs.some((entry: { action: string }) => entry.action === "meeting.close")).toBe(true);
   });
 
   it("updates remote endpoint authorization", async () => {
@@ -322,6 +327,7 @@ describe("API app", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json().summary.authorizedRemoteEndpointCount).toBe(2);
+    expect(response.json().catalog.auditLogs.some((entry: { action: string }) => entry.action === "remote_endpoint.update")).toBe(true);
   });
 
   it("normalizes audio endpoint volume", async () => {
@@ -340,6 +346,24 @@ describe("API app", () => {
 
     expect(response.statusCode).toBe(200);
     expect(body.catalog.audioEndpoints.find((item: { id: string }) => item.id === "AUD-OR-MIC-01").volume).toBe(100);
+    expect(body.catalog.auditLogs.some((entry: { action: string }) => entry.action === "audio_endpoint.update")).toBe(true);
+  });
+
+  it("acknowledges alerts and records audit evidence", async () => {
+    const app = await createApp();
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/alerts/ALERT-SEED-001/acknowledge",
+      payload: {
+        actor: "qa-user"
+      }
+    });
+    const body = response.json();
+
+    expect(response.statusCode).toBe(200);
+    expect(body.summary.openAlertCount).toBe(0);
+    expect(body.catalog.systemAlerts.find((alert: { id: string }) => alert.id === "ALERT-SEED-001").acknowledgedBy).toBe("qa-user");
+    expect(body.catalog.auditLogs.some((entry: { action: string }) => entry.action === "alert.acknowledge")).toBe(true);
   });
 });
 

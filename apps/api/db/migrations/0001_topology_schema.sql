@@ -64,10 +64,37 @@ create table storage_volumes (
 
 create table audit_logs (
   id text primary key,
-  actor_id text not null,
+  actor text not null,
   action text not null,
-  resource_type text not null,
-  resource_id text not null,
+  entity_type text not null,
+  entity_id text not null,
+  occurred_at timestamptz not null default now(),
+  summary text not null,
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create table system_alerts (
+  id text primary key,
+  severity text not null,
+  status text not null,
+  title text not null,
+  message text not null,
+  related_entity_type text,
+  related_entity_id text,
   created_at timestamptz not null default now(),
-  details jsonb not null default '{}'::jsonb
+  acknowledged_at timestamptz,
+  acknowledged_by text,
+  resolved_at timestamptz,
+  resolved_by text
+);
+
+create table status_events (
+  id text primary key,
+  entity_type text not null,
+  entity_id text not null,
+  previous_status text,
+  next_status text not null,
+  severity text not null,
+  occurred_at timestamptz not null default now(),
+  note text
 );

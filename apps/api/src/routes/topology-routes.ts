@@ -1,9 +1,11 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import type {
+  AuditLogEntry,
   Connection,
   Device,
   DevicePort,
   DisplayTarget,
+  GovernanceEntityType,
   AudioEndpoint,
   LayoutTemplate,
   MediaAsset,
@@ -15,6 +17,7 @@ import type {
   Room,
   RouteSession,
   SignalSource,
+  SystemAlert,
   SurgeryCase,
   UserAccount
 } from "@or-media-console/shared";
@@ -53,7 +56,15 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
     };
   });
 
-  app.post("/api/admin/topology/reset", async () => topologyResponse(repository.reset(), repository));
+  app.post("/api/admin/topology/reset", async (_request, reply) =>
+    withRepositoryError(reply, () => {
+      repository.reset();
+      return auditedResponse(
+        repository,
+        auditLog("topology.reset", "topology", "STANDARD_TOPOLOGY", "拓扑已重置为标准版种子数据")
+      );
+    })
+  );
 
   app.get("/api/admin/rooms", async () => repository.getCatalog().rooms);
 
@@ -326,24 +337,55 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
           durationSeconds: request.body.durationSeconds ?? 0
         };
 
-        return topologyResponse(repository.startRecording(recording), repository);
+        repository.startRecording(recording);
+        return auditedResponse(
+          repository,
+          auditLog("recording.start", "recording", recording.id, `录制 ${recording.id} 已开始`, {
+            sourceId: recording.sourceId,
+            surgeryId: recording.surgeryId
+          })
+        );
       })
   );
 
   app.post<{ Params: { recordingId: string } }>("/api/recordings/:recordingId/pause", async (request, reply) =>
-    withRepositoryError(reply, () => topologyResponse(repository.pauseRecording(request.params.recordingId), repository))
+    withRepositoryError(reply, () => {
+      repository.pauseRecording(request.params.recordingId);
+      return auditedResponse(
+        repository,
+        auditLog("recording.pause", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已暂停`)
+      );
+    })
   );
 
   app.post<{ Params: { recordingId: string } }>("/api/recordings/:recordingId/resume", async (request, reply) =>
-    withRepositoryError(reply, () => topologyResponse(repository.resumeRecording(request.params.recordingId), repository))
+    withRepositoryError(reply, () => {
+      repository.resumeRecording(request.params.recordingId);
+      return auditedResponse(
+        repository,
+        auditLog("recording.resume", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已恢复`)
+      );
+    })
   );
 
   app.post<{ Params: { recordingId: string } }>("/api/recordings/:recordingId/stop", async (request, reply) =>
-    withRepositoryError(reply, () => topologyResponse(repository.stopRecording(request.params.recordingId), repository))
+    withRepositoryError(reply, () => {
+      repository.stopRecording(request.params.recordingId);
+      return auditedResponse(
+        repository,
+        auditLog("recording.stop", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已停止`)
+      );
+    })
   );
 
   app.post<{ Params: { recordingId: string } }>("/api/recordings/:recordingId/fail", async (request, reply) =>
-    withRepositoryError(reply, () => topologyResponse(repository.failRecording(request.params.recordingId), repository))
+    withRepositoryError(reply, () => {
+      repository.failRecording(request.params.recordingId);
+      return auditedResponse(
+        repository,
+        auditLog("recording.fail", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已标记失败`)
+      );
+    })
   );
 
   app.get("/api/media-assets", async () => repository.getCatalog().mediaAssets);
@@ -407,7 +449,14 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
           closedAt: request.body.closedAt
         };
 
-        return topologyResponse(repository.upsertMeetingSession(meeting), repository);
+        repository.upsertMeetingSession(meeting);
+        return auditedResponse(
+          repository,
+          auditLog("meeting.create", "meeting", meeting.id, `会议 ${meeting.id} 已创建`, {
+            roomId: meeting.roomId,
+            createdBy: meeting.createdBy
+          })
+        );
       })
   );
 
@@ -424,7 +473,13 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
   );
 
   app.post<{ Params: { meetingId: string } }>("/api/meetings/:meetingId/close", async (request, reply) =>
-    withRepositoryError(reply, () => topologyResponse(repository.closeMeetingSession(request.params.meetingId), repository))
+    withRepositoryError(reply, () => {
+      repository.closeMeetingSession(request.params.meetingId);
+      return auditedResponse(
+        repository,
+        auditLog("meeting.close", "meeting", request.params.meetingId, `会议 ${request.params.meetingId} 已关闭`)
+      );
+    })
   );
 
   app.delete<{ Params: { meetingId: string } }>("/api/meetings/:meetingId", async (request, reply) =>
@@ -460,15 +515,20 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
   );
 
   app.put<{ Params: { endpointId: string }; Body: RemoteEndpoint }>("/api/remote-endpoints/:endpointId", async (request, reply) =>
-    withRepositoryError(reply, () =>
-      topologyResponse(
-        repository.upsertRemoteEndpoint({
+    withRepositoryError(reply, () => {
+      const endpoint = {
           ...request.body,
           id: request.params.endpointId
-        }),
-        repository
-      )
-    )
+        };
+      repository.upsertRemoteEndpoint(endpoint);
+      return auditedResponse(
+        repository,
+        auditLog("remote_endpoint.update", "remote_endpoint", request.params.endpointId, `远程端 ${request.params.endpointId} 已更新`, {
+          authorized: endpoint.authorized,
+          status: endpoint.status
+        })
+      );
+    })
   );
 
   app.delete<{ Params: { endpointId: string } }>("/api/remote-endpoints/:endpointId", async (request, reply) =>
@@ -482,20 +542,71 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
   );
 
   app.put<{ Params: { endpointId: string }; Body: AudioEndpoint }>("/api/audio-endpoints/:endpointId", async (request, reply) =>
-    withRepositoryError(reply, () =>
-      topologyResponse(
-        repository.upsertAudioEndpoint({
+    withRepositoryError(reply, () => {
+      const endpoint = {
           ...request.body,
           id: request.params.endpointId
-        }),
-        repository
-      )
-    )
+        };
+      repository.upsertAudioEndpoint(endpoint);
+      return auditedResponse(
+        repository,
+        auditLog("audio_endpoint.update", "audio_endpoint", request.params.endpointId, `音频端点 ${request.params.endpointId} 已更新`, {
+          muted: endpoint.muted,
+          volume: endpoint.volume,
+          status: endpoint.status
+        })
+      );
+    })
   );
 
   app.delete<{ Params: { endpointId: string } }>("/api/audio-endpoints/:endpointId", async (request, reply) =>
     withRepositoryError(reply, () => topologyResponse(repository.deleteAudioEndpoint(request.params.endpointId), repository))
   );
+
+  app.get("/api/audit-logs", async () => repository.getCatalog().auditLogs);
+
+  app.get("/api/alerts", async () => repository.getCatalog().systemAlerts);
+
+  app.post<{ Body: SystemAlert }>("/api/alerts", async (request, reply) =>
+    withRepositoryError(reply, () => {
+      repository.upsertSystemAlert(request.body);
+      return auditedResponse(
+        repository,
+        auditLog("alert.create", "topology", request.body.id, `告警 ${request.body.id} 已创建`, {
+          severity: request.body.severity,
+          status: request.body.status
+        })
+      );
+    })
+  );
+
+  app.post<{ Params: { alertId: string }; Body: { actor?: string } }>("/api/alerts/:alertId/acknowledge", async (request, reply) =>
+    withRepositoryError(reply, () => {
+      const actor = request.body?.actor ?? "system-api";
+      repository.acknowledgeSystemAlert(request.params.alertId, actor);
+      return auditedResponse(
+        repository,
+        auditLog("alert.acknowledge", "topology", request.params.alertId, `告警 ${request.params.alertId} 已确认`, {
+          actor
+        })
+      );
+    })
+  );
+
+  app.post<{ Params: { alertId: string }; Body: { actor?: string } }>("/api/alerts/:alertId/resolve", async (request, reply) =>
+    withRepositoryError(reply, () => {
+      const actor = request.body?.actor ?? "system-api";
+      repository.resolveSystemAlert(request.params.alertId, actor);
+      return auditedResponse(
+        repository,
+        auditLog("alert.resolve", "topology", request.params.alertId, `告警 ${request.params.alertId} 已解决`, {
+          actor
+        })
+      );
+    })
+  );
+
+  app.get("/api/status-events", async () => repository.getCatalog().statusEvents);
 }
 
 function topologyResponse(_: unknown, repository: TopologyRepository) {
@@ -504,6 +615,33 @@ function topologyResponse(_: unknown, repository: TopologyRepository) {
     summary: repository.getSummary(),
     validation: repository.validate()
   };
+}
+
+function auditedResponse(repository: TopologyRepository, entry: AuditLogEntry) {
+  return topologyResponse(repository.appendAuditLog(entry), repository);
+}
+
+function auditLog(
+  action: string,
+  entityType: GovernanceEntityType,
+  entityId: string,
+  summary: string,
+  metadata?: AuditLogEntry["metadata"]
+): AuditLogEntry {
+  return {
+    id: createRuntimeId("AUDIT"),
+    actor: "system-api",
+    action,
+    entityType,
+    entityId,
+    occurredAt: new Date().toISOString(),
+    summary,
+    metadata
+  };
+}
+
+function createRuntimeId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
 function withRepositoryError(reply: FastifyReply, action: () => unknown) {

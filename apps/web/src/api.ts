@@ -263,6 +263,20 @@ export async function saveAudioEndpoint(endpoint: AudioEndpoint): Promise<Topolo
   });
 }
 
+export async function acknowledgeAlert(alertId: string, actor = "web-console"): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/alerts/${encodeURIComponent(alertId)}/acknowledge`, {
+    method: "POST",
+    body: JSON.stringify({ actor })
+  });
+}
+
+export async function resolveAlert(alertId: string, actor = "web-console"): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/alerts/${encodeURIComponent(alertId)}/resolve`, {
+    method: "POST",
+    body: JSON.stringify({ actor })
+  });
+}
+
 async function sendTopologyRequest(url: string, init: RequestInit): Promise<TopologyResponse> {
   const headers = init.body
     ? {

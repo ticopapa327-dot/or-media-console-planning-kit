@@ -581,6 +581,104 @@ nav {
   width: 16px;
 }
 
+.qualityList,
+.qualityTimeline {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.qualityRow {
+  align-items: start;
+  border: 1px solid #dbe4e4;
+  border-left-width: 4px;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.qualityRow.info {
+  border-left-color: #28666e;
+}
+
+.qualityRow.warning {
+  border-left-color: #c98200;
+}
+
+.qualityRow.critical {
+  border-left-color: #b93535;
+}
+
+.qualityHeader {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.qualityHeader span {
+  background: #ecf3f6;
+  border-radius: 6px;
+  color: #28666e;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 8px;
+}
+
+.qualityRow p,
+.qualityTimeline p {
+  color: #52656e;
+  margin: 6px 0 0;
+}
+
+.qualityActions {
+  display: grid;
+  gap: 8px;
+}
+
+.qualityActions button {
+  align-items: center;
+  aspect-ratio: 1;
+  background: #e6f6ef;
+  border: 1px solid #b8d9ca;
+  border-radius: 7px;
+  color: #0f6f55;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  width: 38px;
+}
+
+.qualityActions svg {
+  height: 16px;
+  width: 16px;
+}
+
+.qualityTimeline {
+  border-top: 1px solid #e0e8e8;
+  padding-top: 12px;
+}
+
+.qualityTimeline > strong {
+  font-size: 14px;
+}
+
+.qualityTimeline article {
+  background: #f8fbfb;
+  border: 1px solid #dbe4e4;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.qualityTimeline span {
+  color: #28666e;
+  font-family: "Segoe UI Mono", "Cascadia Mono", monospace;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .status {
   border-radius: 999px;
   font-size: 12px;
@@ -741,5 +839,13 @@ nav {
 
   .memberRow {
     grid-template-columns: 1fr;
+  }
+
+  .qualityRow {
+    grid-template-columns: 1fr;
+  }
+
+  .qualityActions {
+    grid-template-columns: repeat(2, 38px);
   }
 }
