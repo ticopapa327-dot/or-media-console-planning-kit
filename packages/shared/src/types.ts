@@ -26,6 +26,10 @@ export type ConnectionKind = "hdmi" | "video" | "lan" | "audio" | "fiber" | "usb
 
 export type OperationalStatus = "online" | "offline" | "degraded" | "unknown";
 
+export type RouteStatus = "active" | "disconnected" | "failed";
+
+export type LayoutMode = "single" | "pip" | "pbp_quad";
+
 export interface Room {
   id: string;
   name: string;
@@ -88,6 +92,30 @@ export interface StorageVolume {
   status: OperationalStatus;
 }
 
+export interface RouteSession {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  status: RouteStatus;
+  label: string;
+  createdBy: string;
+  startedAt: string;
+  endedAt?: string;
+}
+
+export interface LayoutSlot {
+  slot: string;
+  sourceId?: string;
+}
+
+export interface LayoutTemplate {
+  id: string;
+  roomId: string;
+  name: string;
+  mode: LayoutMode;
+  slots: LayoutSlot[];
+}
+
 export interface TopologyCatalog {
   version: string;
   generatedFrom: string;
@@ -97,6 +125,8 @@ export interface TopologyCatalog {
   signalSources: SignalSource[];
   displayTargets: DisplayTarget[];
   storageVolumes: StorageVolume[];
+  routeSessions: RouteSession[];
+  layoutTemplates: LayoutTemplate[];
 }
 
 export interface TopologySummary {
@@ -105,6 +135,8 @@ export interface TopologySummary {
   connectionCount: number;
   signalSourceCount: number;
   displayTargetCount: number;
+  activeRouteCount: number;
+  layoutTemplateCount: number;
   storageUsableGb: number;
   degradedDeviceCount: number;
   offlineDeviceCount: number;

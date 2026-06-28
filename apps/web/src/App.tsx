@@ -18,9 +18,11 @@ import type {
   ConnectionKind,
   Device,
   DeviceCategory,
+  LayoutTemplate,
   OperationalStatus,
   Room,
   RoomType,
+  RouteSession,
   TopologyCatalog,
   TopologySummary
 } from "@or-media-console/shared";
@@ -28,14 +30,19 @@ import {
   createConnection,
   createDevice,
   createRoom,
+  createRoute,
   deleteConnection,
   deleteDevice,
   deleteRoom,
+  deleteRoute,
+  disconnectRoute,
   fetchTopology,
   resetTopology,
   saveConnection,
   saveDevice,
+  saveLayout,
   saveRoom,
+  saveRoute,
   type TopologyResponse
 } from "./api";
 
@@ -115,6 +122,8 @@ function metricItems(summary: TopologySummary) {
     { label: "连接", value: summary.connectionCount, icon: Cable },
     { label: "信号源", value: summary.signalSourceCount, icon: RadioTower },
     { label: "显示端", value: summary.displayTargetCount, icon: Monitor },
+    { label: "活动路由", value: summary.activeRouteCount, icon: Cable },
+    { label: "布局", value: summary.layoutTemplateCount, icon: Workflow },
     { label: "可用存储", value: `${summary.storageUsableGb} GB`, icon: Database }
   ];
 }
@@ -152,12 +161,22 @@ function createConnectionDraft(): Connection {
   };
 }
 
+function createRouteDraft(): Pick<RouteSession, "sourceId" | "targetId" | "label" | "createdBy"> {
+  return {
+    sourceId: "",
+    targetId: "",
+    label: "",
+    createdBy: "local-admin"
+  };
+}
+
 export function App() {
   const [topology, setTopology] = useState<TopologyResponse | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState(defaultRoomId);
   const [roomDraft, setRoomDraft] = useState<Room>(createRoomDraft);
   const [deviceDraft, setDeviceDraft] = useState<Device>(() => createDeviceDraft(defaultRoomId));
   const [connectionDraft, setConnectionDraft] = useState<Connection>(createConnectionDraft);
+  const [routeDraft, setRouteDraft] = useState(createRouteDraft);
   const [notice, setNotice] = useState("拓扑载入中");
   const [error, setError] = useState<string | null>(null);
 
@@ -186,6 +205,11 @@ export function App() {
   const deviceIds = new Set(roomDevices.map((device) => device.id));
   const roomConnections =
     catalog?.connections.filter((connection) => deviceIds.has(connection.fromDeviceId) || deviceIds.has(connection.toDeviceId)) ?? [];
+  const roomSourceIds = new Set(catalog?.signalSources.filter((source) => source.roomId === selectedRoom?.id).map((source) => source.id));
+  const roomTargetIds = new Set(catalog?.displayTargets.filter((target) => target.roomId === selectedRoom?.id).map((target) => target.id));
+  const roomRoutes =
+    catalog?.routeSessions.filter((route) => roomSourceIds.has(route.sourceId) || roomTargetIds.has(route.targetId)) ?? [];
+  const roomLayouts = catalog?.layoutTemplates.filter((layout) => layout.roomId === selectedRoom?.id) ?? [];
 
   useEffect(() => {
     if (selectedRoom) {
@@ -237,6 +261,22 @@ export function App() {
           connections: current.catalog.connections.map((connection) =>
             connection.id === connectionId ? { ...connection, ...updates } : connection
           )
+        }
+      };
+    });
+  }
+
+  function updateLocalRoute(routeId: string, updates: Partial<RouteSession>) {
+    setTopology((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        catalog: {
+          ...current.catalog,
+          routeSessions: current.catalog.routeSessions.map((route) => (route.id === routeId ? { ...route, ...updates } : route))
         }
       };
     });
@@ -484,6 +524,106 @@ export function App() {
 
           <div className="linkPanel">
             <div className="sectionHeader compact">
+              <div>
+                <p className="eyebrow">视频</p>
+                <h2>路由控制</h2>
+              </div>
+              <span className="pill">{roomRoutes.filter((route) => route.status === "active").length}</span>
+            </div>
+
+            <div className="formStack addConnection">
+              <label className="field">
+                <span>信号源</span>
+                <select value={routeDraft.sourceId} onChange={(event) => setRouteDraft({ ...routeDraft, sourceId: event.target.value })}>
+                  <option value="">选择信号源</option>
+                  {catalog?.signalSources.map((source) => (
+                    <option key={source.id} value={source.id}>
+                      {source.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>显示端</span>
+                <select value={routeDraft.targetId} onChange={(event) => setRouteDraft({ ...routeDraft, targetId: event.target.value })}>
+                  <option value="">选择显示端</option>
+                  {catalog?.displayTargets.map((target) => (
+                    <option key={target.id} value={target.id}>
+                      {target.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>标签</span>
+                <input value={routeDraft.label} onChange={(event) => setRouteDraft({ ...routeDraft, label: event.target.value })} />
+              </label>
+              <button onClick={() => perform(() => createRoute(routeDraft), "路由已创建")} type="button">
+                <Plus aria-hidden="true" />
+                创建路由
+              </button>
+            </div>
+
+            <div className="connectionList routeList">
+              {roomRoutes.map((route) => {
+                const source = catalog?.signalSources.find((item) => item.id === route.sourceId);
+                const target = catalog?.displayTargets.find((item) => item.id === route.targetId);
+
+                return (
+                  <article className="routeRow" key={route.id}>
+                    <div className="routeHeader">
+                      <strong>{route.id}</strong>
+                      <span className={`status ${route.status === "active" ? "online" : "unknown"}`}>
+                        {route.status === "active" ? "活动" : "断开"}
+                      </span>
+                    </div>
+                    <p>
+                      {source?.name ?? route.sourceId} → {target?.name ?? route.targetId}
+                    </p>
+                    <label className="field compactField">
+                      <span>标签</span>
+                      <input value={route.label} onChange={(event) => updateLocalRoute(route.id, { label: event.target.value })} />
+                    </label>
+                    <div className="buttonRow compactButtons">
+                      <button onClick={() => perform(() => saveRoute(route), "路由已保存")} type="button">
+                        <Save aria-hidden="true" />
+                        保存
+                      </button>
+                      <button onClick={() => perform(() => disconnectRoute(route.id), "路由已断开")} type="button">
+                        <Cable aria-hidden="true" />
+                        断开
+                      </button>
+                      <button onClick={() => perform(() => deleteRoute(route.id), "路由已删除")} type="button">
+                        <Trash2 aria-hidden="true" />
+                        删除
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="sectionHeader compact secondarySection">
+              <div>
+                <p className="eyebrow">布局</p>
+                <h2>模板</h2>
+              </div>
+              <span className="pill">{roomLayouts.length}</span>
+            </div>
+
+            <div className="layoutList">
+              {roomLayouts.map((layout: LayoutTemplate) => (
+                <article className="layoutRow" key={layout.id}>
+                  <strong>{layout.name}</strong>
+                  <span>{layout.mode}</span>
+                  <button onClick={() => perform(() => saveLayout(layout), "布局已保存")} title="保存布局" type="button">
+                    <Save aria-hidden="true" />
+                  </button>
+                </article>
+              ))}
+            </div>
+
+            <div className="sectionHeader compact secondarySection">
               <div>
                 <p className="eyebrow">链路</p>
                 <h2>连接核对</h2>

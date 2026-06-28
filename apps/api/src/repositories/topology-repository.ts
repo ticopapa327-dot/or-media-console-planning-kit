@@ -6,8 +6,11 @@ import {
   type Device,
   type DevicePort,
   type DisplayTarget,
+  type LayoutTemplate,
   type Room,
+  type RouteSession,
   type SignalSource,
+  type StorageVolume,
   type TopologyCatalog,
   type TopologySummary,
   type ValidationIssue
@@ -33,6 +36,11 @@ export interface TopologyRepository {
   deleteSignalSource(sourceId: string): TopologyCatalog;
   upsertDisplayTarget(target: DisplayTarget): TopologyCatalog;
   deleteDisplayTarget(targetId: string): TopologyCatalog;
+  upsertRouteSession(route: RouteSession): TopologyCatalog;
+  disconnectRouteSession(routeId: string, endedAt?: string): TopologyCatalog;
+  deleteRouteSession(routeId: string): TopologyCatalog;
+  upsertLayoutTemplate(layout: LayoutTemplate): TopologyCatalog;
+  deleteLayoutTemplate(layoutId: string): TopologyCatalog;
 }
 
 export class InMemoryTopologyRepository implements TopologyRepository {
@@ -171,6 +179,53 @@ export class InMemoryTopologyRepository implements TopologyRepository {
     });
   }
 
+  upsertRouteSession(route: RouteSession): TopologyCatalog {
+    if (
+      route.status === "active" &&
+      this.catalog.routeSessions.some(
+        (existingRoute) =>
+          existingRoute.id !== route.id && existingRoute.status === "active" && existingRoute.targetId === route.targetId
+      )
+    ) {
+      throw new RepositoryError(409, "ROUTE_TARGET_OCCUPIED", `Display target ${route.targetId} already has an active route`);
+    }
+
+    return this.save(upsertById(this.catalog, "routeSessions", route));
+  }
+
+  disconnectRouteSession(routeId: string, endedAt = new Date().toISOString()): TopologyCatalog {
+    const route = this.catalog.routeSessions.find((candidate) => candidate.id === routeId);
+
+    if (!route) {
+      throw new RepositoryError(404, "ROUTE_NOT_FOUND", `Route session ${routeId} was not found`);
+    }
+
+    return this.save({
+      ...this.catalog,
+      routeSessions: this.catalog.routeSessions.map((candidate) =>
+        candidate.id === routeId ? { ...candidate, status: "disconnected", endedAt } : candidate
+      )
+    });
+  }
+
+  deleteRouteSession(routeId: string): TopologyCatalog {
+    return this.save({
+      ...this.catalog,
+      routeSessions: this.catalog.routeSessions.filter((route) => route.id !== routeId)
+    });
+  }
+
+  upsertLayoutTemplate(layout: LayoutTemplate): TopologyCatalog {
+    return this.save(upsertById(this.catalog, "layoutTemplates", layout));
+  }
+
+  deleteLayoutTemplate(layoutId: string): TopologyCatalog {
+    return this.save({
+      ...this.catalog,
+      layoutTemplates: this.catalog.layoutTemplates.filter((layout) => layout.id !== layoutId)
+    });
+  }
+
   protected save(catalog: TopologyCatalog): TopologyCatalog {
     const issues = validateTopology(catalog);
 
@@ -214,11 +269,26 @@ function loadCatalog(filePath: string, seed: TopologyCatalog): TopologyCatalog {
     return cloneCatalog(seed);
   }
 
-  return JSON.parse(readFileSync(filePath, "utf8")) as TopologyCatalog;
+  return normalizeCatalog(JSON.parse(readFileSync(filePath, "utf8")) as Partial<TopologyCatalog>);
 }
 
 function cloneCatalog(catalog: TopologyCatalog): TopologyCatalog {
-  return JSON.parse(JSON.stringify(catalog)) as TopologyCatalog;
+  return normalizeCatalog(JSON.parse(JSON.stringify(catalog)) as Partial<TopologyCatalog>);
+}
+
+function normalizeCatalog(catalog: Partial<TopologyCatalog>): TopologyCatalog {
+  return {
+    version: catalog.version ?? STANDARD_TOPOLOGY.version,
+    generatedFrom: catalog.generatedFrom ?? STANDARD_TOPOLOGY.generatedFrom,
+    rooms: catalog.rooms ?? [],
+    devices: catalog.devices ?? [],
+    connections: catalog.connections ?? [],
+    signalSources: catalog.signalSources ?? [],
+    displayTargets: catalog.displayTargets ?? [],
+    storageVolumes: catalog.storageVolumes ?? [],
+    routeSessions: catalog.routeSessions ?? [],
+    layoutTemplates: catalog.layoutTemplates ?? []
+  };
 }
 
 type CatalogListKey = {

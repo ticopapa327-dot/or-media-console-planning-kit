@@ -360,6 +360,12 @@ nav {
   margin-top: 4px;
 }
 
+.secondarySection {
+  border-top: 1px solid #e0e8e8;
+  margin-top: 18px;
+  padding-top: 18px;
+}
+
 .deviceGrid {
   display: grid;
   gap: 12px;
@@ -406,6 +412,66 @@ nav {
 .miniActions {
   display: flex;
   gap: 6px;
+}
+
+.routeList,
+.layoutList {
+  display: grid;
+  gap: 10px;
+}
+
+.routeRow,
+.layoutRow {
+  border: 1px solid #dbe4e4;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.routeHeader,
+.layoutRow {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.routeRow p {
+  color: #52656e;
+  margin: 0;
+}
+
+.compactButtons {
+  align-items: center;
+}
+
+.layoutRow span {
+  background: #ecf3f6;
+  border-radius: 6px;
+  color: #28666e;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 8px;
+}
+
+.layoutRow button {
+  align-items: center;
+  aspect-ratio: 1;
+  background: #e6f6ef;
+  border: 1px solid #b8d9ca;
+  border-radius: 7px;
+  color: #0f6f55;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 34px;
+  width: 34px;
+}
+
+.layoutRow button svg {
+  height: 16px;
+  width: 16px;
 }
 
 .status {

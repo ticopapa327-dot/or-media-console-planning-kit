@@ -57,7 +57,7 @@
 
 从 `docs/prelaunch/00_文档清单与使用说明.md` 开始阅读。若你希望把自己的工程经验产品化，可以先参考 `02_PRD`、`03_SRS` 和 `10_Codex工程协作指南`，再根据自己的行业场景替换功能域、风险项和验收标准。
 
-进入开发阶段时，可阅读 `docs/dev/SPRINT_0_ENGINEERING_BOOTSTRAP.md` 和 `docs/dev/SPRINT_1_TOPOLOGY_CONFIGURATION.md`，并从以下命令启动：
+进入开发阶段时，可阅读 `docs/dev/SPRINT_0_ENGINEERING_BOOTSTRAP.md`、`docs/dev/SPRINT_1_TOPOLOGY_CONFIGURATION.md` 和 `docs/dev/SPRINT_2_VIDEO_ROUTING.md`，并从以下命令启动：
 
 ```powershell
 pnpm install
@@ -114,7 +114,7 @@ Start with `docs/prelaunch/00_文档清单与使用说明.md`. If you are produc
 
 For implementation planning, continue with `14_MVP开发任务清单.md` and `15_技术实施路线图.md`. They translate the documentation package into executable MVP tasks and a first technical roadmap.
 
-For the runnable engineering skeleton and topology configuration increment, read `docs/dev/SPRINT_0_ENGINEERING_BOOTSTRAP.md` and `docs/dev/SPRINT_1_TOPOLOGY_CONFIGURATION.md`, then run `pnpm install`, `pnpm test`, `pnpm build`, and `pnpm dev`.
+For the runnable engineering skeleton, topology configuration, and video routing increments, read `docs/dev/SPRINT_0_ENGINEERING_BOOTSTRAP.md`, `docs/dev/SPRINT_1_TOPOLOGY_CONFIGURATION.md`, and `docs/dev/SPRINT_2_VIDEO_ROUTING.md`, then run `pnpm install`, `pnpm test`, `pnpm build`, and `pnpm dev`.
 
 ### Disclaimer
 

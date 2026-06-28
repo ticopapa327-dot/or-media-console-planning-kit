@@ -25,6 +25,7 @@ describe("API app", () => {
 
     expect(response.statusCode).toBe(200);
     expect(body.summary.roomCount).toBe(4);
+    expect(body.summary.activeRouteCount).toBe(2);
     expect(body.validation).toEqual([]);
     expect(body.catalog.rooms.map((room: { id: string }) => room.id)).toContain("room-or-standard");
   });
@@ -132,6 +133,54 @@ describe("API app", () => {
     expect(response.statusCode).toBe(200);
     expect(body.summary.roomCount).toBe(4);
     expect(body.catalog.rooms.some((room: { id: string }) => room.id === "room-before-reset")).toBe(false);
+  });
+
+  it("creates and disconnects route sessions", async () => {
+    const app = await createApp();
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/routes",
+      payload: {
+        id: "ROUTE-TEST-001",
+        sourceId: "SRC-DSA-CT",
+        targetId: "DISP-OR-LARGE",
+        label: "测试路由"
+      }
+    });
+    const createdBody = created.json();
+
+    expect(created.statusCode).toBe(200);
+    expect(createdBody.summary.activeRouteCount).toBe(3);
+
+    const disconnected = await app.inject({
+      method: "POST",
+      url: "/api/routes/ROUTE-TEST-001/disconnect"
+    });
+    const disconnectedBody = disconnected.json();
+
+    expect(disconnected.statusCode).toBe(200);
+    expect(disconnectedBody.summary.activeRouteCount).toBe(2);
+    expect(disconnectedBody.catalog.routeSessions.find((route: { id: string }) => route.id === "ROUTE-TEST-001").status).toBe(
+      "disconnected"
+    );
+  });
+
+  it("rejects routes that target an occupied display", async () => {
+    const app = await createApp();
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/routes",
+      payload: {
+        id: "ROUTE-CONFLICT",
+        sourceId: "SRC-DSA-CT",
+        targetId: "DISP-BEDSIDE",
+        label: "冲突路由"
+      }
+    });
+    const body = response.json();
+
+    expect(response.statusCode).toBe(409);
+    expect(body.error).toBe("ROUTE_TARGET_OCCUPIED");
   });
 });
 

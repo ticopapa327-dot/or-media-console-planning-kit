@@ -1,5 +1,14 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
-import type { Connection, Device, DevicePort, DisplayTarget, Room, SignalSource } from "@or-media-console/shared";
+import type {
+  Connection,
+  Device,
+  DevicePort,
+  DisplayTarget,
+  LayoutTemplate,
+  Room,
+  RouteSession,
+  SignalSource
+} from "@or-media-console/shared";
 import { RepositoryError, type TopologyRepository } from "../repositories/topology-repository";
 
 export async function registerTopologyRoutes(app: FastifyInstance, repository: TopologyRepository): Promise<void> {
@@ -183,6 +192,67 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
 
   app.delete<{ Params: { targetId: string } }>("/api/admin/display-targets/:targetId", async (request, reply) =>
     withRepositoryError(reply, () => topologyResponse(repository.deleteDisplayTarget(request.params.targetId), repository))
+  );
+
+  app.get("/api/routes", async () => repository.getCatalog().routeSessions);
+
+  app.post<{ Body: Partial<RouteSession> & Pick<RouteSession, "sourceId" | "targetId"> }>("/api/routes", async (request, reply) =>
+    withRepositoryError(reply, () => {
+      const route: RouteSession = {
+        id: request.body.id ?? `ROUTE-${Date.now()}`,
+        sourceId: request.body.sourceId,
+        targetId: request.body.targetId,
+        status: request.body.status ?? "active",
+        label: request.body.label ?? `${request.body.sourceId} -> ${request.body.targetId}`,
+        createdBy: request.body.createdBy ?? "local-admin",
+        startedAt: request.body.startedAt ?? new Date().toISOString(),
+        endedAt: request.body.endedAt
+      };
+
+      return topologyResponse(repository.upsertRouteSession(route), repository);
+    })
+  );
+
+  app.put<{ Params: { routeId: string }; Body: RouteSession }>("/api/routes/:routeId", async (request, reply) =>
+    withRepositoryError(reply, () =>
+      topologyResponse(
+        repository.upsertRouteSession({
+          ...request.body,
+          id: request.params.routeId
+        }),
+        repository
+      )
+    )
+  );
+
+  app.post<{ Params: { routeId: string } }>("/api/routes/:routeId/disconnect", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.disconnectRouteSession(request.params.routeId), repository))
+  );
+
+  app.delete<{ Params: { routeId: string } }>("/api/routes/:routeId", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.deleteRouteSession(request.params.routeId), repository))
+  );
+
+  app.get("/api/layouts", async () => repository.getCatalog().layoutTemplates);
+
+  app.post<{ Body: LayoutTemplate }>("/api/layouts", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.upsertLayoutTemplate(request.body), repository))
+  );
+
+  app.put<{ Params: { layoutId: string }; Body: LayoutTemplate }>("/api/layouts/:layoutId", async (request, reply) =>
+    withRepositoryError(reply, () =>
+      topologyResponse(
+        repository.upsertLayoutTemplate({
+          ...request.body,
+          id: request.params.layoutId
+        }),
+        repository
+      )
+    )
+  );
+
+  app.delete<{ Params: { layoutId: string } }>("/api/layouts/:layoutId", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.deleteLayoutTemplate(request.params.layoutId), repository))
   );
 }
 

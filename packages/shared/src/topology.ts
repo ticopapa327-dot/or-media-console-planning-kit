@@ -12,6 +12,8 @@ export function summarizeTopology(catalog: TopologyCatalog): TopologySummary {
     connectionCount: catalog.connections.length,
     signalSourceCount: catalog.signalSources.length,
     displayTargetCount: catalog.displayTargets.length,
+    activeRouteCount: catalog.routeSessions.filter((route) => route.status === "active").length,
+    layoutTemplateCount: catalog.layoutTemplates.length,
     storageUsableGb,
     degradedDeviceCount: catalog.devices.filter((device) => device.status === "degraded").length,
     offlineDeviceCount: catalog.devices.filter((device) => device.status === "offline").length
@@ -31,6 +33,10 @@ export function validateTopology(catalog: TopologyCatalog): ValidationIssue[] {
   issues.push(...findDuplicateIds("SOURCE_ID_DUPLICATE", "Signal source", catalog.signalSources.map((source) => source.id)));
   issues.push(...findDuplicateIds("DISPLAY_ID_DUPLICATE", "Display target", catalog.displayTargets.map((display) => display.id)));
   issues.push(...findDuplicateIds("STORAGE_ID_DUPLICATE", "Storage volume", catalog.storageVolumes.map((volume) => volume.id)));
+  issues.push(...findDuplicateIds("ROUTE_ID_DUPLICATE", "Route session", catalog.routeSessions.map((route) => route.id)));
+  issues.push(...findDuplicateIds("LAYOUT_ID_DUPLICATE", "Layout template", catalog.layoutTemplates.map((layout) => layout.id)));
+  const sourceIds = new Set(catalog.signalSources.map((source) => source.id));
+  const displayIds = new Set(catalog.displayTargets.map((display) => display.id));
 
   for (const device of catalog.devices) {
     if (!roomIds.has(device.roomId)) {
@@ -118,6 +124,40 @@ export function validateTopology(catalog: TopologyCatalog): ValidationIssue[] {
         code: "STORAGE_SERVER_MISSING",
         message: `Storage volume ${volume.id} references missing server ${volume.serverDeviceId}`
       });
+    }
+  }
+
+  for (const route of catalog.routeSessions) {
+    if (!sourceIds.has(route.sourceId)) {
+      issues.push({
+        code: "ROUTE_SOURCE_MISSING",
+        message: `Route session ${route.id} references missing source ${route.sourceId}`
+      });
+    }
+
+    if (!displayIds.has(route.targetId)) {
+      issues.push({
+        code: "ROUTE_TARGET_MISSING",
+        message: `Route session ${route.id} references missing display target ${route.targetId}`
+      });
+    }
+  }
+
+  for (const layout of catalog.layoutTemplates) {
+    if (!roomIds.has(layout.roomId)) {
+      issues.push({
+        code: "LAYOUT_ROOM_MISSING",
+        message: `Layout template ${layout.id} references missing room ${layout.roomId}`
+      });
+    }
+
+    for (const slot of layout.slots) {
+      if (slot.sourceId && !sourceIds.has(slot.sourceId)) {
+        issues.push({
+          code: "LAYOUT_SOURCE_MISSING",
+          message: `Layout template ${layout.id} references missing source ${slot.sourceId}`
+        });
+      }
     }
   }
 

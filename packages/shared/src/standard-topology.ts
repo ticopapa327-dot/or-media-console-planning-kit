@@ -642,5 +642,56 @@ export const STANDARD_TOPOLOGY: TopologyCatalog = {
       usedGb: 2048,
       status: "online"
     }
+  ],
+  routeSessions: [
+    {
+      id: "ROUTE-OR-001",
+      sourceId: "SRC-ENDOSCOPE",
+      targetId: "DISP-BEDSIDE",
+      status: "active",
+      label: "腔镜到床旁显示",
+      createdBy: "system-seed",
+      startedAt: "2026-06-29T00:00:00.000Z"
+    },
+    {
+      id: "ROUTE-TH-001",
+      sourceId: "SRC-FIELD-CAM",
+      targetId: "DISP-HALL-4K",
+      status: "active",
+      label: "术野到示教大屏",
+      createdBy: "system-seed",
+      startedAt: "2026-06-29T00:00:00.000Z"
+    }
+  ],
+  layoutTemplates: [
+    {
+      id: "LAYOUT-OR-SINGLE",
+      roomId: "room-or-standard",
+      name: "单画面",
+      mode: "single",
+      slots: [{ slot: "main", sourceId: "SRC-ENDOSCOPE" }]
+    },
+    {
+      id: "LAYOUT-OR-PIP",
+      roomId: "room-or-standard",
+      name: "主画面+全景",
+      mode: "pip",
+      slots: [
+        { slot: "main", sourceId: "SRC-ENDOSCOPE" },
+        { slot: "pip", sourceId: "SRC-PANORAMA" }
+      ]
+    },
+    {
+      id: "LAYOUT-TH-QUAD",
+      roomId: "room-teaching-hall",
+      name: "四分屏示教",
+      mode: "pbp_quad",
+      slots: [
+        { slot: "1", sourceId: "SRC-DSA-CT" },
+        { slot: "2", sourceId: "SRC-ENDOSCOPE" },
+        { slot: "3", sourceId: "SRC-FIELD-CAM" },
+        { slot: "4", sourceId: "SRC-MONITOR" }
+      ]
+    }
   ]
 };

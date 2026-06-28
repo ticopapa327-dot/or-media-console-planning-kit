@@ -11,6 +11,8 @@ describe("standard topology seed", () => {
       roomCount: 4,
       signalSourceCount: 6,
       displayTargetCount: 3,
+      activeRouteCount: 2,
+      layoutTemplateCount: 3,
       offlineDeviceCount: 0
     });
   });
@@ -29,6 +31,18 @@ describe("standard topology seed", () => {
           purpose: "验证断链检测",
           testRefs: []
         }
+      ],
+      routeSessions: [
+        ...STANDARD_TOPOLOGY.routeSessions,
+        {
+          id: "ROUTE-BROKEN",
+          sourceId: "missing-source",
+          targetId: "missing-display",
+          status: "active",
+          label: "验证路由断链检测",
+          createdBy: "test",
+          startedAt: "2026-06-29T00:00:00.000Z"
+        }
       ]
     };
     const codes = validateTopology(brokenCatalog).map((issue) => issue.code);
@@ -36,5 +50,7 @@ describe("standard topology seed", () => {
     expect(codes).toContain("ROOM_ID_DUPLICATE");
     expect(codes).toContain("CONNECTION_FROM_DEVICE_MISSING");
     expect(codes).toContain("CONNECTION_TO_DEVICE_MISSING");
+    expect(codes).toContain("ROUTE_SOURCE_MISSING");
+    expect(codes).toContain("ROUTE_TARGET_MISSING");
   });
 });

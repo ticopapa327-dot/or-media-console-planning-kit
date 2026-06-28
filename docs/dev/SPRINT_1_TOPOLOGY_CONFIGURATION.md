@@ -12,6 +12,10 @@ Sprint 1 implements `MVP-004` to `MVP-007` from the MVP task list:
 - Add an editable web console for room, device and connection maintenance.
 - Keep generated runtime data out of the public repository.
 
+## Status
+
+Completed in commit `61a2cf9`.
+
 ## Runtime Data
 
 The API uses this file by default:

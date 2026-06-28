@@ -3,7 +3,9 @@ import {
   summarizeTopology,
   type Connection,
   type Device,
+  type LayoutTemplate,
   type Room,
+  type RouteSession,
   type TopologyCatalog,
   type TopologySummary
 } from "@or-media-console/shared";
@@ -95,6 +97,39 @@ export async function createConnection(connection: Connection): Promise<Topology
 export async function deleteConnection(connectionId: string): Promise<TopologyResponse> {
   return sendTopologyRequest(`/api/admin/connections/${encodeURIComponent(connectionId)}`, {
     method: "DELETE"
+  });
+}
+
+export async function createRoute(route: Pick<RouteSession, "sourceId" | "targetId"> & Partial<RouteSession>): Promise<TopologyResponse> {
+  return sendTopologyRequest("/api/routes", {
+    method: "POST",
+    body: JSON.stringify(route)
+  });
+}
+
+export async function saveRoute(route: RouteSession): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/routes/${encodeURIComponent(route.id)}`, {
+    method: "PUT",
+    body: JSON.stringify(route)
+  });
+}
+
+export async function disconnectRoute(routeId: string): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/routes/${encodeURIComponent(routeId)}/disconnect`, {
+    method: "POST"
+  });
+}
+
+export async function deleteRoute(routeId: string): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/routes/${encodeURIComponent(routeId)}`, {
+    method: "DELETE"
+  });
+}
+
+export async function saveLayout(layout: LayoutTemplate): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/layouts/${encodeURIComponent(layout.id)}`, {
+    method: "PUT",
+    body: JSON.stringify(layout)
   });
 }
 
