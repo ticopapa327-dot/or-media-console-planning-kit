@@ -1,0 +1,358 @@
+:root {
+  color: #182026;
+  font-family:
+    Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: #edf1f0;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button {
+  font: inherit;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: #17212a;
+  color: #f7faf8;
+  padding: 24px 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.brand svg {
+  width: 24px;
+  height: 24px;
+  color: #6dd4b4;
+}
+
+nav {
+  display: grid;
+  gap: 8px;
+}
+
+.navItem {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #d8e4df;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  text-align: left;
+}
+
+.navItem:hover,
+.navItem.active {
+  background: #243240;
+  border-color: #425566;
+}
+
+.navItem span {
+  font-weight: 700;
+}
+
+.navItem small {
+  color: #91a5b1;
+  text-transform: uppercase;
+}
+
+.content {
+  padding: 28px;
+}
+
+.topbar {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.topbar h1,
+.sectionHeader h2,
+.deviceCard h3 {
+  margin: 0;
+}
+
+.topbar h1 {
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.eyebrow {
+  color: #5f6f78;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.healthBadge,
+.pill {
+  align-items: center;
+  border: 1px solid #b8d9ca;
+  border-radius: 999px;
+  color: #0f6f55;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.healthBadge {
+  background: #e6f6ef;
+}
+
+.healthBadge svg {
+  height: 18px;
+  width: 18px;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.metricCard,
+.deviceCard,
+.roomPanel,
+.linkPanel {
+  background: #ffffff;
+  border: 1px solid #d5dfdf;
+  border-radius: 8px;
+}
+
+.metricCard {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-height: 92px;
+  padding: 16px;
+}
+
+.metricCard svg {
+  color: #28666e;
+  flex: 0 0 auto;
+  height: 24px;
+  width: 24px;
+}
+
+.metricCard span,
+.deviceFooter,
+.connectionRow span {
+  color: #667983;
+  font-size: 13px;
+}
+
+.metricCard strong {
+  display: block;
+  font-size: 22px;
+  line-height: 1.25;
+  margin-top: 4px;
+}
+
+.workspace {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.roomPanel,
+.linkPanel {
+  padding: 20px;
+}
+
+.sectionHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.sectionHeader.compact {
+  margin-bottom: 18px;
+}
+
+.sectionHeader h2 {
+  font-size: 22px;
+}
+
+.description {
+  color: #52656e;
+  margin: 0 0 18px;
+}
+
+.deviceGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deviceCard {
+  display: grid;
+  gap: 10px;
+  min-height: 180px;
+  padding: 14px;
+}
+
+.deviceHeader,
+.deviceFooter {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.deviceId {
+  color: #7a8b93;
+  font-family: "Segoe UI Mono", "Cascadia Mono", monospace;
+  font-size: 12px;
+}
+
+.deviceCard h3 {
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.deviceCard p {
+  color: #52656e;
+  margin: 0;
+}
+
+.status {
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 8px;
+}
+
+.status.online {
+  background: #dff6ed;
+  color: #0f6f55;
+}
+
+.status.degraded {
+  background: #fff1d4;
+  color: #8a5a00;
+}
+
+.status.offline {
+  background: #ffe0df;
+  color: #a83232;
+}
+
+.status.unknown {
+  background: #e8e9ec;
+  color: #606975;
+}
+
+.connectionList {
+  display: grid;
+  gap: 10px;
+}
+
+.connectionRow {
+  align-items: center;
+  border: 1px solid #dbe4e4;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+}
+
+.connectionRow div {
+  display: grid;
+  gap: 4px;
+}
+
+.connectionRow strong {
+  font-family: "Segoe UI Mono", "Cascadia Mono", monospace;
+  font-size: 13px;
+}
+
+.connectionRow em {
+  background: #ecf3f6;
+  border-radius: 6px;
+  color: #28666e;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  padding: 6px 8px;
+}
+
+@media (max-width: 1180px) {
+  .metricGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .deviceGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    padding: 16px;
+  }
+
+  nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .content {
+    padding: 18px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topbar h1 {
+    font-size: 24px;
+  }
+
+  .metricGrid,
+  .deviceGrid {
+    grid-template-columns: 1fr;
+  }
+}

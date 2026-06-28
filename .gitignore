@@ -9,6 +9,8 @@
 *.rar
 tmp/
 output/
+dist/
+coverage/
 
 # OS/editor noise
 .DS_Store

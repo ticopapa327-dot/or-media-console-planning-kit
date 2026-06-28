@@ -1,0 +1,25 @@
+{
+  "name": "or-media-console-planning-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @or-media-console/api --filter @or-media-console/web dev",
+    "build": "pnpm -r --sort build",
+    "test": "pnpm -r --sort test",
+    "typecheck": "pnpm -r --sort typecheck",
+    "lint": "pnpm run typecheck && pnpm run test",
+    "seed:check": "pnpm --filter @or-media-console/shared test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0",
+    "vitest": "^4.0.0"
+  }
+}

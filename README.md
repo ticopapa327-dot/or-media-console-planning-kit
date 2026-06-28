@@ -28,6 +28,10 @@
 
 ### 文档目录
 
+- `apps/api/`：Sprint 0 后端 API 骨架
+- `apps/web/`：Sprint 0 前端控制台骨架
+- `packages/shared/`：共享设备拓扑、类型和校验逻辑
+- `docs/dev/`：开发启动和工程实施记录
 - `docs/prelaunch/00_文档清单与使用说明.md`
 - `docs/prelaunch/01_资料来源与竞品调研.md`
 - `docs/prelaunch/02_PRD_产品需求文档.md`
@@ -52,6 +56,15 @@
 ### 使用建议
 
 从 `docs/prelaunch/00_文档清单与使用说明.md` 开始阅读。若你希望把自己的工程经验产品化，可以先参考 `02_PRD`、`03_SRS` 和 `10_Codex工程协作指南`，再根据自己的行业场景替换功能域、风险项和验收标准。
+
+进入开发阶段时，可阅读 `docs/dev/SPRINT_0_ENGINEERING_BOOTSTRAP.md`，并从以下命令启动：
+
+```powershell
+pnpm install
+pnpm test
+pnpm build
+pnpm dev
+```
 
 ### 重要声明
 
@@ -85,6 +98,10 @@ This repository uses a more disciplined workflow:
 
 ### Repository Structure
 
+- `apps/api/` contains the Sprint 0 backend API skeleton.
+- `apps/web/` contains the Sprint 0 web console skeleton.
+- `packages/shared/` contains shared topology types, seed data, and validation logic.
+- `docs/dev/` contains engineering bootstrap notes.
 - `docs/prelaunch/` contains the pre-release documentation package.
 - `AGENTS.md` defines repository-level Codex collaboration rules.
 - `ANONYMIZATION.md` explains the anonymization scope.
@@ -96,6 +113,8 @@ This repository uses a more disciplined workflow:
 Start with `docs/prelaunch/00_文档清单与使用说明.md`. If you are productizing your own engineering experience, review `02_PRD`, `03_SRS`, and `10_Codex工程协作指南`, then replace the functional domains, risks, and acceptance criteria with your own domain context.
 
 For implementation planning, continue with `14_MVP开发任务清单.md` and `15_技术实施路线图.md`. They translate the documentation package into executable MVP tasks and a first technical roadmap.
+
+For the runnable Sprint 0 skeleton, read `docs/dev/SPRINT_0_ENGINEERING_BOOTSTRAP.md` and run `pnpm install`, `pnpm test`, `pnpm build`, and `pnpm dev`.
 
 ### Disclaimer
 

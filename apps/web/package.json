@@ -1,0 +1,19 @@
+{
+  "name": "@or-media-console/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4200",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4200",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@or-media-console/shared": "workspace:*",
+    "lucide-react": "^0.550.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
