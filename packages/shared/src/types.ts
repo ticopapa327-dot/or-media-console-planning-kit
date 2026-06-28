@@ -38,6 +38,16 @@ export type MediaAssetType = "video" | "snapshot" | "document";
 
 export type ChecksumStatus = "pending" | "verified" | "failed";
 
+export type UserRole = "or_operator" | "teaching_user" | "remote_expert" | "device_engineer" | "admin" | "auditor";
+
+export type MeetingStatus = "open" | "closed";
+
+export type MeetingMemberRole = "host" | "viewer" | "speaker";
+
+export type RemoteDeviceType = "office_pc" | "mobile" | "tablet" | "laptop" | "teaching_host";
+
+export type AudioEndpointKind = "microphone" | "speaker" | "amplifier";
+
 export interface Room {
   id: string;
   name: string;
@@ -170,6 +180,54 @@ export interface MediaAsset {
   createdAt: string;
 }
 
+export interface UserAccount {
+  id: string;
+  displayName: string;
+  role: UserRole;
+  allowedRoomIds: string[];
+  enabled: boolean;
+}
+
+export interface MeetingSession {
+  id: string;
+  title: string;
+  roomId: string;
+  surgeryId?: string;
+  status: MeetingStatus;
+  createdBy: string;
+  createdAt: string;
+  closedAt?: string;
+}
+
+export interface MeetingMember {
+  id: string;
+  meetingId: string;
+  userId?: string;
+  displayName: string;
+  role: MeetingMemberRole;
+  audioMuted: boolean;
+}
+
+export interface RemoteEndpoint {
+  id: string;
+  name: string;
+  deviceType: RemoteDeviceType;
+  roomId?: string;
+  authorized: boolean;
+  network: "lan" | "wifi";
+  status: OperationalStatus;
+}
+
+export interface AudioEndpoint {
+  id: string;
+  roomId: string;
+  name: string;
+  kind: AudioEndpointKind;
+  muted: boolean;
+  volume: number;
+  status: OperationalStatus;
+}
+
 export interface TopologyCatalog {
   version: string;
   generatedFrom: string;
@@ -185,6 +243,11 @@ export interface TopologyCatalog {
   surgeries: SurgeryCase[];
   recordingTasks: RecordingTask[];
   mediaAssets: MediaAsset[];
+  users: UserAccount[];
+  meetingSessions: MeetingSession[];
+  meetingMembers: MeetingMember[];
+  remoteEndpoints: RemoteEndpoint[];
+  audioEndpoints: AudioEndpoint[];
 }
 
 export interface TopologySummary {
@@ -199,6 +262,9 @@ export interface TopologySummary {
   surgeryCount: number;
   activeRecordingCount: number;
   mediaAssetCount: number;
+  openMeetingCount: number;
+  authorizedRemoteEndpointCount: number;
+  audioEndpointCount: number;
   storageUsableGb: number;
   degradedDeviceCount: number;
   offlineDeviceCount: number;

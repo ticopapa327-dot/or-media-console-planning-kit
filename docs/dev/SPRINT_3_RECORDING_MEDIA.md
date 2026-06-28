@@ -15,6 +15,10 @@ Sprint 3 implements the core of `MVP-013` to `MVP-016`:
 
 No real patient data is used. Seeded records use explicit demo identifiers.
 
+## Status
+
+Completed in commit `332db43`.
+
 ## Recording State Machine
 
 ```text

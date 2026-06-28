@@ -4,14 +4,19 @@ import type {
   Device,
   DevicePort,
   DisplayTarget,
+  AudioEndpoint,
   LayoutTemplate,
   MediaAsset,
+  MeetingMember,
+  MeetingSession,
   Patient,
   RecordingTask,
+  RemoteEndpoint,
   Room,
   RouteSession,
   SignalSource,
-  SurgeryCase
+  SurgeryCase,
+  UserAccount
 } from "@or-media-console/shared";
 import { RepositoryError, type TopologyRepository } from "../repositories/topology-repository";
 
@@ -361,6 +366,135 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
 
   app.delete<{ Params: { assetId: string } }>("/api/media-assets/:assetId", async (request, reply) =>
     withRepositoryError(reply, () => topologyResponse(repository.deleteMediaAsset(request.params.assetId), repository))
+  );
+
+  app.get("/api/users", async () => repository.getCatalog().users);
+
+  app.post<{ Body: UserAccount }>("/api/users", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.upsertUser(request.body), repository))
+  );
+
+  app.put<{ Params: { userId: string }; Body: UserAccount }>("/api/users/:userId", async (request, reply) =>
+    withRepositoryError(reply, () =>
+      topologyResponse(
+        repository.upsertUser({
+          ...request.body,
+          id: request.params.userId
+        }),
+        repository
+      )
+    )
+  );
+
+  app.delete<{ Params: { userId: string } }>("/api/users/:userId", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.deleteUser(request.params.userId), repository))
+  );
+
+  app.get("/api/meetings", async () => repository.getCatalog().meetingSessions);
+
+  app.post<{ Body: Partial<MeetingSession> & Pick<MeetingSession, "title" | "roomId" | "createdBy"> }>(
+    "/api/meetings",
+    async (request, reply) =>
+      withRepositoryError(reply, () => {
+        const meeting: MeetingSession = {
+          id: request.body.id ?? `MEET-${Date.now()}`,
+          title: request.body.title,
+          roomId: request.body.roomId,
+          surgeryId: request.body.surgeryId,
+          status: request.body.status ?? "open",
+          createdBy: request.body.createdBy,
+          createdAt: request.body.createdAt ?? new Date().toISOString(),
+          closedAt: request.body.closedAt
+        };
+
+        return topologyResponse(repository.upsertMeetingSession(meeting), repository);
+      })
+  );
+
+  app.put<{ Params: { meetingId: string }; Body: MeetingSession }>("/api/meetings/:meetingId", async (request, reply) =>
+    withRepositoryError(reply, () =>
+      topologyResponse(
+        repository.upsertMeetingSession({
+          ...request.body,
+          id: request.params.meetingId
+        }),
+        repository
+      )
+    )
+  );
+
+  app.post<{ Params: { meetingId: string } }>("/api/meetings/:meetingId/close", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.closeMeetingSession(request.params.meetingId), repository))
+  );
+
+  app.delete<{ Params: { meetingId: string } }>("/api/meetings/:meetingId", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.deleteMeetingSession(request.params.meetingId), repository))
+  );
+
+  app.get("/api/meeting-members", async () => repository.getCatalog().meetingMembers);
+
+  app.post<{ Body: MeetingMember }>("/api/meeting-members", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.upsertMeetingMember(request.body), repository))
+  );
+
+  app.put<{ Params: { memberId: string }; Body: MeetingMember }>("/api/meeting-members/:memberId", async (request, reply) =>
+    withRepositoryError(reply, () =>
+      topologyResponse(
+        repository.upsertMeetingMember({
+          ...request.body,
+          id: request.params.memberId
+        }),
+        repository
+      )
+    )
+  );
+
+  app.delete<{ Params: { memberId: string } }>("/api/meeting-members/:memberId", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.deleteMeetingMember(request.params.memberId), repository))
+  );
+
+  app.get("/api/remote-endpoints", async () => repository.getCatalog().remoteEndpoints);
+
+  app.post<{ Body: RemoteEndpoint }>("/api/remote-endpoints", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.upsertRemoteEndpoint(request.body), repository))
+  );
+
+  app.put<{ Params: { endpointId: string }; Body: RemoteEndpoint }>("/api/remote-endpoints/:endpointId", async (request, reply) =>
+    withRepositoryError(reply, () =>
+      topologyResponse(
+        repository.upsertRemoteEndpoint({
+          ...request.body,
+          id: request.params.endpointId
+        }),
+        repository
+      )
+    )
+  );
+
+  app.delete<{ Params: { endpointId: string } }>("/api/remote-endpoints/:endpointId", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.deleteRemoteEndpoint(request.params.endpointId), repository))
+  );
+
+  app.get("/api/audio-endpoints", async () => repository.getCatalog().audioEndpoints);
+
+  app.post<{ Body: AudioEndpoint }>("/api/audio-endpoints", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.upsertAudioEndpoint(request.body), repository))
+  );
+
+  app.put<{ Params: { endpointId: string }; Body: AudioEndpoint }>("/api/audio-endpoints/:endpointId", async (request, reply) =>
+    withRepositoryError(reply, () =>
+      topologyResponse(
+        repository.upsertAudioEndpoint({
+          ...request.body,
+          id: request.params.endpointId
+        }),
+        repository
+      )
+    )
+  );
+
+  app.delete<{ Params: { endpointId: string } }>("/api/audio-endpoints/:endpointId", async (request, reply) =>
+    withRepositoryError(reply, () => topologyResponse(repository.deleteAudioEndpoint(request.params.endpointId), repository))
   );
 }
 

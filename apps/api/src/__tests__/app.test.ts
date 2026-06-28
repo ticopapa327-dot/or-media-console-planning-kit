@@ -26,6 +26,8 @@ describe("API app", () => {
     expect(response.statusCode).toBe(200);
     expect(body.summary.roomCount).toBe(4);
     expect(body.summary.activeRouteCount).toBe(2);
+    expect(body.summary.openMeetingCount).toBe(1);
+    expect(body.summary.authorizedRemoteEndpointCount).toBe(1);
     expect(body.validation).toEqual([]);
     expect(body.catalog.rooms.map((room: { id: string }) => room.id)).toContain("room-or-standard");
   });
@@ -280,6 +282,64 @@ describe("API app", () => {
 
     expect(response.statusCode).toBe(409);
     expect(body.error).toBe("SOURCE_ALREADY_RECORDING");
+  });
+
+  it("creates and closes teaching meetings", async () => {
+    const app = await createApp();
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/meetings",
+      payload: {
+        id: "MEET-TEST-001",
+        title: "测试示教会议",
+        roomId: "room-teaching-hall",
+        createdBy: "USER-TEACH",
+        surgeryId: "SURG-DEMO-001"
+      }
+    });
+
+    expect(created.statusCode).toBe(200);
+    expect(created.json().summary.openMeetingCount).toBe(2);
+
+    const closed = await app.inject({ method: "POST", url: "/api/meetings/MEET-TEST-001/close" });
+
+    expect(closed.statusCode).toBe(200);
+    expect(closed.json().summary.openMeetingCount).toBe(1);
+  });
+
+  it("updates remote endpoint authorization", async () => {
+    const app = await createApp();
+    const original = (await app.inject({ method: "GET", url: "/api/topology" })).json();
+    const endpoint = original.catalog.remoteEndpoints.find((item: { id: string }) => item.id === "RT-MOBILE-ACCESS-01");
+    const response = await app.inject({
+      method: "PUT",
+      url: "/api/remote-endpoints/RT-MOBILE-ACCESS-01",
+      payload: {
+        ...endpoint,
+        authorized: true
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().summary.authorizedRemoteEndpointCount).toBe(2);
+  });
+
+  it("normalizes audio endpoint volume", async () => {
+    const app = await createApp();
+    const original = (await app.inject({ method: "GET", url: "/api/topology" })).json();
+    const endpoint = original.catalog.audioEndpoints.find((item: { id: string }) => item.id === "AUD-OR-MIC-01");
+    const response = await app.inject({
+      method: "PUT",
+      url: "/api/audio-endpoints/AUD-OR-MIC-01",
+      payload: {
+        ...endpoint,
+        volume: 130
+      }
+    });
+    const body = response.json();
+
+    expect(response.statusCode).toBe(200);
+    expect(body.catalog.audioEndpoints.find((item: { id: string }) => item.id === "AUD-OR-MIC-01").volume).toBe(100);
   });
 });
 

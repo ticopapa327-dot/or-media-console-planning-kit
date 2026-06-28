@@ -19,6 +19,9 @@ export function summarizeTopology(catalog: TopologyCatalog): TopologySummary {
     activeRecordingCount: catalog.recordingTasks.filter((recording) => recording.status === "recording" || recording.status === "paused")
       .length,
     mediaAssetCount: catalog.mediaAssets.length,
+    openMeetingCount: catalog.meetingSessions.filter((meeting) => meeting.status === "open").length,
+    authorizedRemoteEndpointCount: catalog.remoteEndpoints.filter((endpoint) => endpoint.authorized).length,
+    audioEndpointCount: catalog.audioEndpoints.length,
     storageUsableGb,
     degradedDeviceCount: catalog.devices.filter((device) => device.status === "degraded").length,
     offlineDeviceCount: catalog.devices.filter((device) => device.status === "offline").length
@@ -44,12 +47,19 @@ export function validateTopology(catalog: TopologyCatalog): ValidationIssue[] {
   issues.push(...findDuplicateIds("SURGERY_ID_DUPLICATE", "Surgery case", catalog.surgeries.map((surgery) => surgery.id)));
   issues.push(...findDuplicateIds("RECORDING_ID_DUPLICATE", "Recording task", catalog.recordingTasks.map((recording) => recording.id)));
   issues.push(...findDuplicateIds("MEDIA_ID_DUPLICATE", "Media asset", catalog.mediaAssets.map((asset) => asset.id)));
+  issues.push(...findDuplicateIds("USER_ID_DUPLICATE", "User", catalog.users.map((user) => user.id)));
+  issues.push(...findDuplicateIds("MEETING_ID_DUPLICATE", "Meeting session", catalog.meetingSessions.map((meeting) => meeting.id)));
+  issues.push(...findDuplicateIds("MEMBER_ID_DUPLICATE", "Meeting member", catalog.meetingMembers.map((member) => member.id)));
+  issues.push(...findDuplicateIds("REMOTE_ENDPOINT_ID_DUPLICATE", "Remote endpoint", catalog.remoteEndpoints.map((endpoint) => endpoint.id)));
+  issues.push(...findDuplicateIds("AUDIO_ENDPOINT_ID_DUPLICATE", "Audio endpoint", catalog.audioEndpoints.map((endpoint) => endpoint.id)));
   const sourceIds = new Set(catalog.signalSources.map((source) => source.id));
   const displayIds = new Set(catalog.displayTargets.map((display) => display.id));
   const storageIds = new Set(catalog.storageVolumes.map((volume) => volume.id));
   const patientIds = new Set(catalog.patients.map((patient) => patient.id));
   const surgeryIds = new Set(catalog.surgeries.map((surgery) => surgery.id));
   const recordingIds = new Set(catalog.recordingTasks.map((recording) => recording.id));
+  const userIds = new Set(catalog.users.map((user) => user.id));
+  const meetingIds = new Set(catalog.meetingSessions.map((meeting) => meeting.id));
 
   for (const device of catalog.devices) {
     if (!roomIds.has(device.roomId)) {
@@ -239,6 +249,74 @@ export function validateTopology(catalog: TopologyCatalog): ValidationIssue[] {
       issues.push({
         code: "MEDIA_STORAGE_MISSING",
         message: `Media asset ${asset.id} references missing storage volume ${asset.storageVolumeId}`
+      });
+    }
+  }
+
+  for (const user of catalog.users) {
+    for (const roomId of user.allowedRoomIds) {
+      if (!roomIds.has(roomId)) {
+        issues.push({
+          code: "USER_ROOM_MISSING",
+          message: `User ${user.id} references missing room ${roomId}`
+        });
+      }
+    }
+  }
+
+  for (const meeting of catalog.meetingSessions) {
+    if (!roomIds.has(meeting.roomId)) {
+      issues.push({
+        code: "MEETING_ROOM_MISSING",
+        message: `Meeting ${meeting.id} references missing room ${meeting.roomId}`
+      });
+    }
+
+    if (meeting.surgeryId && !surgeryIds.has(meeting.surgeryId)) {
+      issues.push({
+        code: "MEETING_SURGERY_MISSING",
+        message: `Meeting ${meeting.id} references missing surgery ${meeting.surgeryId}`
+      });
+    }
+
+    if (!userIds.has(meeting.createdBy)) {
+      issues.push({
+        code: "MEETING_CREATOR_MISSING",
+        message: `Meeting ${meeting.id} references missing creator ${meeting.createdBy}`
+      });
+    }
+  }
+
+  for (const member of catalog.meetingMembers) {
+    if (!meetingIds.has(member.meetingId)) {
+      issues.push({
+        code: "MEMBER_MEETING_MISSING",
+        message: `Meeting member ${member.id} references missing meeting ${member.meetingId}`
+      });
+    }
+
+    if (member.userId && !userIds.has(member.userId)) {
+      issues.push({
+        code: "MEMBER_USER_MISSING",
+        message: `Meeting member ${member.id} references missing user ${member.userId}`
+      });
+    }
+  }
+
+  for (const endpoint of catalog.remoteEndpoints) {
+    if (endpoint.roomId && !roomIds.has(endpoint.roomId)) {
+      issues.push({
+        code: "REMOTE_ENDPOINT_ROOM_MISSING",
+        message: `Remote endpoint ${endpoint.id} references missing room ${endpoint.roomId}`
+      });
+    }
+  }
+
+  for (const endpoint of catalog.audioEndpoints) {
+    if (!roomIds.has(endpoint.roomId)) {
+      issues.push({
+        code: "AUDIO_ENDPOINT_ROOM_MISSING",
+        message: `Audio endpoint ${endpoint.id} references missing room ${endpoint.roomId}`
       });
     }
   }

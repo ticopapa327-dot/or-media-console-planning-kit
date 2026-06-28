@@ -6,15 +6,20 @@ import {
   type Device,
   type DevicePort,
   type DisplayTarget,
+  type AudioEndpoint,
   type LayoutTemplate,
   type MediaAsset,
+  type MeetingMember,
+  type MeetingSession,
   type Patient,
   type RecordingTask,
+  type RemoteEndpoint,
   type Room,
   type RouteSession,
   type SignalSource,
   type SurgeryCase,
   type TopologyCatalog,
+  type UserAccount,
   type TopologySummary,
   type ValidationIssue
 } from "@or-media-console/shared";
@@ -55,6 +60,17 @@ export interface TopologyRepository {
   failRecording(recordingId: string, endedAt?: string): TopologyCatalog;
   upsertMediaAsset(asset: MediaAsset): TopologyCatalog;
   deleteMediaAsset(assetId: string): TopologyCatalog;
+  upsertUser(user: UserAccount): TopologyCatalog;
+  deleteUser(userId: string): TopologyCatalog;
+  upsertMeetingSession(meeting: MeetingSession): TopologyCatalog;
+  closeMeetingSession(meetingId: string, closedAt?: string): TopologyCatalog;
+  deleteMeetingSession(meetingId: string): TopologyCatalog;
+  upsertMeetingMember(member: MeetingMember): TopologyCatalog;
+  deleteMeetingMember(memberId: string): TopologyCatalog;
+  upsertRemoteEndpoint(endpoint: RemoteEndpoint): TopologyCatalog;
+  deleteRemoteEndpoint(endpointId: string): TopologyCatalog;
+  upsertAudioEndpoint(endpoint: AudioEndpoint): TopologyCatalog;
+  deleteAudioEndpoint(endpointId: string): TopologyCatalog;
 }
 
 export class InMemoryTopologyRepository implements TopologyRepository {
@@ -381,6 +397,88 @@ export class InMemoryTopologyRepository implements TopologyRepository {
     });
   }
 
+  upsertUser(user: UserAccount): TopologyCatalog {
+    return this.save(upsertById(this.catalog, "users", user));
+  }
+
+  deleteUser(userId: string): TopologyCatalog {
+    const isReferenced =
+      this.catalog.meetingSessions.some((meeting) => meeting.createdBy === userId) ||
+      this.catalog.meetingMembers.some((member) => member.userId === userId);
+
+    if (isReferenced) {
+      throw new RepositoryError(409, "USER_IS_REFERENCED", `User ${userId} is still referenced`);
+    }
+
+    return this.save({
+      ...this.catalog,
+      users: this.catalog.users.filter((user) => user.id !== userId)
+    });
+  }
+
+  upsertMeetingSession(meeting: MeetingSession): TopologyCatalog {
+    return this.save(upsertById(this.catalog, "meetingSessions", meeting));
+  }
+
+  closeMeetingSession(meetingId: string, closedAt = new Date().toISOString()): TopologyCatalog {
+    if (!this.catalog.meetingSessions.some((meeting) => meeting.id === meetingId)) {
+      throw new RepositoryError(404, "MEETING_NOT_FOUND", `Meeting ${meetingId} was not found`);
+    }
+
+    return this.save({
+      ...this.catalog,
+      meetingSessions: this.catalog.meetingSessions.map((meeting) =>
+        meeting.id === meetingId ? { ...meeting, status: "closed", closedAt } : meeting
+      )
+    });
+  }
+
+  deleteMeetingSession(meetingId: string): TopologyCatalog {
+    if (this.catalog.meetingMembers.some((member) => member.meetingId === meetingId)) {
+      throw new RepositoryError(409, "MEETING_HAS_MEMBERS", `Meeting ${meetingId} still has members`);
+    }
+
+    return this.save({
+      ...this.catalog,
+      meetingSessions: this.catalog.meetingSessions.filter((meeting) => meeting.id !== meetingId)
+    });
+  }
+
+  upsertMeetingMember(member: MeetingMember): TopologyCatalog {
+    return this.save(upsertById(this.catalog, "meetingMembers", member));
+  }
+
+  deleteMeetingMember(memberId: string): TopologyCatalog {
+    return this.save({
+      ...this.catalog,
+      meetingMembers: this.catalog.meetingMembers.filter((member) => member.id !== memberId)
+    });
+  }
+
+  upsertRemoteEndpoint(endpoint: RemoteEndpoint): TopologyCatalog {
+    return this.save(upsertById(this.catalog, "remoteEndpoints", endpoint));
+  }
+
+  deleteRemoteEndpoint(endpointId: string): TopologyCatalog {
+    return this.save({
+      ...this.catalog,
+      remoteEndpoints: this.catalog.remoteEndpoints.filter((endpoint) => endpoint.id !== endpointId)
+    });
+  }
+
+  upsertAudioEndpoint(endpoint: AudioEndpoint): TopologyCatalog {
+    const normalizedVolume = Math.min(Math.max(endpoint.volume, 0), 100);
+    const normalizedEndpoint: AudioEndpoint = { ...endpoint, volume: normalizedVolume };
+    return this.save(upsertById(this.catalog, "audioEndpoints", normalizedEndpoint));
+  }
+
+  deleteAudioEndpoint(endpointId: string): TopologyCatalog {
+    return this.save({
+      ...this.catalog,
+      audioEndpoints: this.catalog.audioEndpoints.filter((endpoint) => endpoint.id !== endpointId)
+    });
+  }
+
   private getRecordingOrThrow(recordingId: string): RecordingTask {
     const recording = this.catalog.recordingTasks.find((candidate) => candidate.id === recordingId);
 
@@ -456,7 +554,12 @@ function normalizeCatalog(catalog: Partial<TopologyCatalog>): TopologyCatalog {
     patients: catalog.patients ?? [],
     surgeries: catalog.surgeries ?? [],
     recordingTasks: catalog.recordingTasks ?? [],
-    mediaAssets: catalog.mediaAssets ?? []
+    mediaAssets: catalog.mediaAssets ?? [],
+    users: catalog.users ?? [],
+    meetingSessions: catalog.meetingSessions ?? [],
+    meetingMembers: catalog.meetingMembers ?? [],
+    remoteEndpoints: catalog.remoteEndpoints ?? [],
+    audioEndpoints: catalog.audioEndpoints ?? []
   };
 }
 

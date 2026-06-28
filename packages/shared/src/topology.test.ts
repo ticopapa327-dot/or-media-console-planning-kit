@@ -17,6 +17,9 @@ describe("standard topology seed", () => {
       surgeryCount: 1,
       activeRecordingCount: 0,
       mediaAssetCount: 1,
+      openMeetingCount: 1,
+      authorizedRemoteEndpointCount: 1,
+      audioEndpointCount: 2,
       offlineDeviceCount: 0
     });
   });
@@ -60,6 +63,17 @@ describe("standard topology seed", () => {
           startedAt: "2026-06-29T00:00:00.000Z",
           durationSeconds: 0
         }
+      ],
+      meetingMembers: [
+        ...STANDARD_TOPOLOGY.meetingMembers,
+        {
+          id: "MEM-BROKEN",
+          meetingId: "missing-meeting",
+          userId: "missing-user",
+          displayName: "断链成员",
+          role: "viewer",
+          audioMuted: true
+        }
       ]
     };
     const codes = validateTopology(brokenCatalog).map((issue) => issue.code);
@@ -71,5 +85,7 @@ describe("standard topology seed", () => {
     expect(codes).toContain("ROUTE_TARGET_MISSING");
     expect(codes).toContain("RECORDING_SURGERY_MISSING");
     expect(codes).toContain("RECORDING_STORAGE_MISSING");
+    expect(codes).toContain("MEMBER_MEETING_MISSING");
+    expect(codes).toContain("MEMBER_USER_MISSING");
   });
 });

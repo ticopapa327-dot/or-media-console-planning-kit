@@ -548,6 +548,39 @@ nav {
   width: 16px;
 }
 
+.memberList {
+  display: grid;
+  gap: 10px;
+}
+
+.memberRow {
+  align-items: center;
+  border: 1px solid #dbe4e4;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(90px, 130px) auto 38px;
+  padding: 10px;
+}
+
+.memberRow button {
+  align-items: center;
+  aspect-ratio: 1;
+  background: #e6f6ef;
+  border: 1px solid #b8d9ca;
+  border-radius: 7px;
+  color: #0f6f55;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  width: 38px;
+}
+
+.memberRow button svg {
+  height: 16px;
+  width: 16px;
+}
+
 .status {
   border-radius: 999px;
   font-size: 12px;
@@ -703,6 +736,10 @@ nav {
   }
 
   .caseRow {
+    grid-template-columns: 1fr;
+  }
+
+  .memberRow {
     grid-template-columns: 1fr;
   }
 }

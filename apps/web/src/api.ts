@@ -3,15 +3,20 @@ import {
   summarizeTopology,
   type Connection,
   type Device,
+  type AudioEndpoint,
   type LayoutTemplate,
   type MediaAsset,
+  type MeetingMember,
+  type MeetingSession,
   type Patient,
   type RecordingTask,
+  type RemoteEndpoint,
   type Room,
   type RouteSession,
   type SurgeryCase,
   type TopologyCatalog,
-  type TopologySummary
+  type TopologySummary,
+  type UserAccount
 } from "@or-media-console/shared";
 
 export interface TopologyResponse {
@@ -200,6 +205,61 @@ export async function saveMediaAsset(asset: MediaAsset): Promise<TopologyRespons
   return sendTopologyRequest(`/api/media-assets/${encodeURIComponent(asset.id)}`, {
     method: "PUT",
     body: JSON.stringify(asset)
+  });
+}
+
+export async function saveUser(user: UserAccount): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/users/${encodeURIComponent(user.id)}`, {
+    method: "PUT",
+    body: JSON.stringify(user)
+  });
+}
+
+export async function createMeeting(meeting: Pick<MeetingSession, "title" | "roomId" | "createdBy"> & Partial<MeetingSession>) {
+  return sendTopologyRequest("/api/meetings", {
+    method: "POST",
+    body: JSON.stringify(meeting)
+  });
+}
+
+export async function saveMeeting(meeting: MeetingSession): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/meetings/${encodeURIComponent(meeting.id)}`, {
+    method: "PUT",
+    body: JSON.stringify(meeting)
+  });
+}
+
+export async function closeMeeting(meetingId: string): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/meetings/${encodeURIComponent(meetingId)}/close`, {
+    method: "POST"
+  });
+}
+
+export async function saveMeetingMember(member: MeetingMember): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/meeting-members/${encodeURIComponent(member.id)}`, {
+    method: "PUT",
+    body: JSON.stringify(member)
+  });
+}
+
+export async function createMeetingMember(member: MeetingMember): Promise<TopologyResponse> {
+  return sendTopologyRequest("/api/meeting-members", {
+    method: "POST",
+    body: JSON.stringify(member)
+  });
+}
+
+export async function saveRemoteEndpoint(endpoint: RemoteEndpoint): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/remote-endpoints/${encodeURIComponent(endpoint.id)}`, {
+    method: "PUT",
+    body: JSON.stringify(endpoint)
+  });
+}
+
+export async function saveAudioEndpoint(endpoint: AudioEndpoint): Promise<TopologyResponse> {
+  return sendTopologyRequest(`/api/audio-endpoints/${encodeURIComponent(endpoint.id)}`, {
+    method: "PUT",
+    body: JSON.stringify(endpoint)
   });
 }
 

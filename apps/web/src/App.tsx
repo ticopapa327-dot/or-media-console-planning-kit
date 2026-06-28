@@ -14,16 +14,22 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type {
+  AudioEndpoint,
   Connection,
   ConnectionKind,
   Device,
   DeviceCategory,
   LayoutTemplate,
   MediaAsset,
+  MeetingMember,
+  MeetingMemberRole,
+  MeetingSession,
   OperationalStatus,
   Patient,
   RecordingStatus,
   RecordingTask,
+  RemoteDeviceType,
+  RemoteEndpoint,
   Room,
   RoomType,
   RouteSession,
@@ -35,10 +41,13 @@ import type {
 import {
   createConnection,
   createDevice,
+  createMeeting,
+  createMeetingMember,
   createPatient,
   createRoom,
   createRoute,
   createSurgery,
+  closeMeeting,
   deleteConnection,
   deleteDevice,
   deleteRoom,
@@ -52,8 +61,12 @@ import {
   saveConnection,
   saveDevice,
   saveLayout,
+  saveAudioEndpoint,
   saveMediaAsset,
+  saveMeeting,
+  saveMeetingMember,
   savePatient,
+  saveRemoteEndpoint,
   saveRoom,
   saveRoute,
   saveSurgery,
@@ -68,6 +81,8 @@ const roomTypes: RoomType[] = ["operating_room", "teaching_hall", "remote_teachi
 const statuses: OperationalStatus[] = ["online", "degraded", "offline", "unknown"];
 const surgeryStatuses: SurgeryStatus[] = ["scheduled", "in_progress", "completed", "cancelled"];
 const recordingStatuses: RecordingStatus[] = ["recording", "paused", "stopped", "failed"];
+const meetingMemberRoles: MeetingMemberRole[] = ["host", "speaker", "viewer"];
+const remoteDeviceTypes: RemoteDeviceType[] = ["office_pc", "mobile", "tablet", "laptop", "teaching_host"];
 const connectionKinds: ConnectionKind[] = ["hdmi", "video", "lan", "audio", "fiber", "usb", "power", "wireless"];
 const deviceCategories: DeviceCategory[] = [
   "matrix",
@@ -155,6 +170,16 @@ function recordingStatusText(status: RecordingStatus): string {
   return labels[status];
 }
 
+function meetingMemberRoleText(role: MeetingMemberRole): string {
+  const labels: Record<MeetingMemberRole, string> = {
+    host: "主持",
+    speaker: "发言",
+    viewer: "观看"
+  };
+
+  return labels[role];
+}
+
 function metricItems(summary: TopologySummary) {
   return [
     { label: "房间", value: summary.roomCount, icon: Workflow },
@@ -165,6 +190,9 @@ function metricItems(summary: TopologySummary) {
     { label: "活动路由", value: summary.activeRouteCount, icon: Cable },
     { label: "录制中", value: summary.activeRecordingCount, icon: Activity },
     { label: "媒体", value: summary.mediaAssetCount, icon: Database },
+    { label: "会议", value: summary.openMeetingCount, icon: RadioTower },
+    { label: "远程授权", value: summary.authorizedRemoteEndpointCount, icon: ShieldCheck },
+    { label: "音频端点", value: summary.audioEndpointCount, icon: Activity },
     { label: "布局", value: summary.layoutTemplateCount, icon: Workflow },
     { label: "可用存储", value: `${summary.storageUsableGb} GB`, icon: Database }
   ];
@@ -244,6 +272,25 @@ function createRecordingDraft(): Pick<RecordingTask, "surgeryId" | "sourceId" | 
   };
 }
 
+function createMeetingDraft(roomId: string): Pick<MeetingSession, "title" | "roomId" | "createdBy" | "surgeryId"> {
+  return {
+    title: "",
+    roomId,
+    createdBy: "USER-TEACH",
+    surgeryId: undefined
+  };
+}
+
+function createMemberDraft(): MeetingMember {
+  return {
+    id: "",
+    meetingId: "",
+    displayName: "",
+    role: "viewer",
+    audioMuted: true
+  };
+}
+
 export function App() {
   const [topology, setTopology] = useState<TopologyResponse | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState(defaultRoomId);
@@ -254,6 +301,8 @@ export function App() {
   const [patientDraft, setPatientDraft] = useState<Patient>(createPatientDraft);
   const [surgeryDraft, setSurgeryDraft] = useState<SurgeryCase>(() => createSurgeryDraft(defaultRoomId));
   const [recordingDraft, setRecordingDraft] = useState(createRecordingDraft);
+  const [meetingDraft, setMeetingDraft] = useState(() => createMeetingDraft(defaultRoomId));
+  const [memberDraft, setMemberDraft] = useState<MeetingMember>(createMemberDraft);
   const [notice, setNotice] = useState("拓扑载入中");
   const [error, setError] = useState<string | null>(null);
 
@@ -291,12 +340,18 @@ export function App() {
   const roomSurgeryIds = new Set(roomSurgeries.map((surgery) => surgery.id));
   const roomRecordings = catalog?.recordingTasks.filter((recording) => roomSurgeryIds.has(recording.surgeryId)) ?? [];
   const roomMediaAssets = catalog?.mediaAssets.filter((asset) => roomSurgeryIds.has(asset.surgeryId)) ?? [];
+  const roomMeetings = catalog?.meetingSessions.filter((meeting) => meeting.roomId === selectedRoom?.id) ?? [];
+  const roomMeetingIds = new Set(roomMeetings.map((meeting) => meeting.id));
+  const roomMembers = catalog?.meetingMembers.filter((member) => roomMeetingIds.has(member.meetingId)) ?? [];
+  const roomRemoteEndpoints = catalog?.remoteEndpoints.filter((endpoint) => endpoint.roomId === selectedRoom?.id) ?? [];
+  const roomAudioEndpoints = catalog?.audioEndpoints.filter((endpoint) => endpoint.roomId === selectedRoom?.id) ?? [];
 
   useEffect(() => {
     if (selectedRoom) {
       setRoomDraft(selectedRoom);
       setDeviceDraft(createDeviceDraft(selectedRoom.id));
       setSurgeryDraft((current) => ({ ...current, roomId: selectedRoom.id }));
+      setMeetingDraft((current) => ({ ...current, roomId: selectedRoom.id }));
     }
   }, [selectedRoom?.id]);
 
@@ -375,6 +430,76 @@ export function App() {
         catalog: {
           ...current.catalog,
           mediaAssets: current.catalog.mediaAssets.map((asset) => (asset.id === assetId ? { ...asset, ...updates } : asset))
+        }
+      };
+    });
+  }
+
+  function updateLocalMeeting(meetingId: string, updates: Partial<MeetingSession>) {
+    setTopology((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        catalog: {
+          ...current.catalog,
+          meetingSessions: current.catalog.meetingSessions.map((meeting) =>
+            meeting.id === meetingId ? { ...meeting, ...updates } : meeting
+          )
+        }
+      };
+    });
+  }
+
+  function updateLocalMember(memberId: string, updates: Partial<MeetingMember>) {
+    setTopology((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        catalog: {
+          ...current.catalog,
+          meetingMembers: current.catalog.meetingMembers.map((member) => (member.id === memberId ? { ...member, ...updates } : member))
+        }
+      };
+    });
+  }
+
+  function updateLocalRemoteEndpoint(endpointId: string, updates: Partial<RemoteEndpoint>) {
+    setTopology((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        catalog: {
+          ...current.catalog,
+          remoteEndpoints: current.catalog.remoteEndpoints.map((endpoint) =>
+            endpoint.id === endpointId ? { ...endpoint, ...updates } : endpoint
+          )
+        }
+      };
+    });
+  }
+
+  function updateLocalAudioEndpoint(endpointId: string, updates: Partial<AudioEndpoint>) {
+    setTopology((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        catalog: {
+          ...current.catalog,
+          audioEndpoints: current.catalog.audioEndpoints.map((endpoint) =>
+            endpoint.id === endpointId ? { ...endpoint, ...updates } : endpoint
+          )
         }
       };
     });
@@ -968,6 +1093,213 @@ export function App() {
                   <button onClick={() => perform(() => saveMediaAsset(asset), "媒体资产已保存")} type="button">
                     <Save aria-hidden="true" />
                     保存
+                  </button>
+                </article>
+              ))}
+            </div>
+
+            <div className="sectionHeader compact secondarySection">
+              <div>
+                <p className="eyebrow">示教</p>
+                <h2>会议</h2>
+              </div>
+              <span className="pill">{roomMeetings.filter((meeting) => meeting.status === "open").length}</span>
+            </div>
+
+            <div className="formStack addConnection">
+              <label className="field">
+                <span>标题</span>
+                <input value={meetingDraft.title} onChange={(event) => setMeetingDraft({ ...meetingDraft, title: event.target.value })} />
+              </label>
+              <label className="field">
+                <span>手术</span>
+                <select value={meetingDraft.surgeryId ?? ""} onChange={(event) => setMeetingDraft({ ...meetingDraft, surgeryId: event.target.value })}>
+                  <option value="">不关联</option>
+                  {roomSurgeries.map((surgery) => (
+                    <option key={surgery.id} value={surgery.id}>
+                      {surgery.procedureName || surgery.id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>创建者</span>
+                <select value={meetingDraft.createdBy} onChange={(event) => setMeetingDraft({ ...meetingDraft, createdBy: event.target.value })}>
+                  {catalog?.users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.displayName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button onClick={() => perform(() => createMeeting(meetingDraft), "会议已创建")} type="button">
+                <Plus aria-hidden="true" />
+                创建会议
+              </button>
+            </div>
+
+            <div className="mediaList">
+              {roomMeetings.map((meeting) => (
+                <article className="mediaRow" key={meeting.id}>
+                  <strong>{meeting.id}</strong>
+                  <label className="field compactField">
+                    <span>标题</span>
+                    <input value={meeting.title} onChange={(event) => updateLocalMeeting(meeting.id, { title: event.target.value })} />
+                  </label>
+                  <div className="mediaMeta">
+                    <span>{meeting.status === "open" ? "开放" : "关闭"}</span>
+                    <span>{meeting.surgeryId ?? "无手术关联"}</span>
+                  </div>
+                  <div className="buttonRow compactButtons">
+                    <button onClick={() => perform(() => saveMeeting(meeting), "会议已保存")} type="button">
+                      <Save aria-hidden="true" />
+                      保存
+                    </button>
+                    <button onClick={() => perform(() => closeMeeting(meeting.id), "会议已关闭")} type="button">
+                      <Cable aria-hidden="true" />
+                      关闭
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="formStack addConnection">
+              <label className="field">
+                <span>成员编号</span>
+                <input value={memberDraft.id} onChange={(event) => setMemberDraft({ ...memberDraft, id: event.target.value })} />
+              </label>
+              <label className="field">
+                <span>会议</span>
+                <select value={memberDraft.meetingId} onChange={(event) => setMemberDraft({ ...memberDraft, meetingId: event.target.value })}>
+                  <option value="">选择会议</option>
+                  {roomMeetings.map((meeting) => (
+                    <option key={meeting.id} value={meeting.id}>
+                      {meeting.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>姓名</span>
+                <input value={memberDraft.displayName} onChange={(event) => setMemberDraft({ ...memberDraft, displayName: event.target.value })} />
+              </label>
+              <label className="field">
+                <span>角色</span>
+                <select value={memberDraft.role} onChange={(event) => setMemberDraft({ ...memberDraft, role: event.target.value as MeetingMemberRole })}>
+                  {meetingMemberRoles.map((role) => (
+                    <option key={role} value={role}>
+                      {meetingMemberRoleText(role)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="toggleField">
+                <input
+                  checked={memberDraft.audioMuted}
+                  onChange={(event) => setMemberDraft({ ...memberDraft, audioMuted: event.target.checked })}
+                  type="checkbox"
+                />
+                <span>静音</span>
+              </label>
+              <button onClick={() => perform(() => createMeetingMember(memberDraft), "成员已加入")} type="button">
+                <Plus aria-hidden="true" />
+                加入会议
+              </button>
+            </div>
+
+            <div className="memberList">
+              {roomMembers.map((member) => (
+                <article className="memberRow" key={member.id}>
+                  <strong>{member.displayName}</strong>
+                  <select value={member.role} onChange={(event) => updateLocalMember(member.id, { role: event.target.value as MeetingMemberRole })}>
+                    {meetingMemberRoles.map((role) => (
+                      <option key={role} value={role}>
+                        {meetingMemberRoleText(role)}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="toggleField">
+                    <input
+                      checked={member.audioMuted}
+                      onChange={(event) => updateLocalMember(member.id, { audioMuted: event.target.checked })}
+                      type="checkbox"
+                    />
+                    <span>静音</span>
+                  </label>
+                  <button onClick={() => perform(() => saveMeetingMember(member), "成员已保存")} type="button">
+                    <Save aria-hidden="true" />
+                  </button>
+                </article>
+              ))}
+            </div>
+
+            <div className="sectionHeader compact secondarySection">
+              <div>
+                <p className="eyebrow">远程</p>
+                <h2>授权</h2>
+              </div>
+              <span className="pill">{roomRemoteEndpoints.filter((endpoint) => endpoint.authorized).length}</span>
+            </div>
+
+            <div className="memberList">
+              {roomRemoteEndpoints.map((endpoint) => (
+                <article className="memberRow" key={endpoint.id}>
+                  <strong>{endpoint.name}</strong>
+                  <select
+                    value={endpoint.deviceType}
+                    onChange={(event) => updateLocalRemoteEndpoint(endpoint.id, { deviceType: event.target.value as RemoteDeviceType })}
+                  >
+                    {remoteDeviceTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="toggleField">
+                    <input
+                      checked={endpoint.authorized}
+                      onChange={(event) => updateLocalRemoteEndpoint(endpoint.id, { authorized: event.target.checked })}
+                      type="checkbox"
+                    />
+                    <span>授权</span>
+                  </label>
+                  <button onClick={() => perform(() => saveRemoteEndpoint(endpoint), "远程端已保存")} type="button">
+                    <Save aria-hidden="true" />
+                  </button>
+                </article>
+              ))}
+            </div>
+
+            <div className="sectionHeader compact secondarySection">
+              <div>
+                <p className="eyebrow">音频</p>
+                <h2>端点</h2>
+              </div>
+              <span className="pill">{roomAudioEndpoints.length}</span>
+            </div>
+
+            <div className="memberList">
+              {roomAudioEndpoints.map((endpoint) => (
+                <article className="memberRow" key={endpoint.id}>
+                  <strong>{endpoint.name}</strong>
+                  <input
+                    max={100}
+                    min={0}
+                    onChange={(event) => updateLocalAudioEndpoint(endpoint.id, { volume: Number(event.target.value) })}
+                    type="range"
+                    value={endpoint.volume}
+                  />
+                  <label className="toggleField">
+                    <input
+                      checked={endpoint.muted}
+                      onChange={(event) => updateLocalAudioEndpoint(endpoint.id, { muted: event.target.checked })}
+                      type="checkbox"
+                    />
+                    <span>静音</span>
+                  </label>
+                  <button onClick={() => perform(() => saveAudioEndpoint(endpoint), "音频端点已保存")} type="button">
+                    <Save aria-hidden="true" />
                   </button>
                 </article>
               ))}

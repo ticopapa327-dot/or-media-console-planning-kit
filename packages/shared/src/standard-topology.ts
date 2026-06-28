@@ -742,5 +742,97 @@ export const STANDARD_TOPOLOGY: TopologyCatalog = {
       checksumStatus: "verified",
       createdAt: "2026-06-29T09:00:00.000Z"
     }
+  ],
+  users: [
+    {
+      id: "USER-OR-OP",
+      displayName: "手术室操作员",
+      role: "or_operator",
+      allowedRoomIds: ["room-or-standard"],
+      enabled: true
+    },
+    {
+      id: "USER-TEACH",
+      displayName: "示教用户",
+      role: "teaching_user",
+      allowedRoomIds: ["room-teaching-hall"],
+      enabled: true
+    },
+    {
+      id: "USER-REMOTE",
+      displayName: "远程专家",
+      role: "remote_expert",
+      allowedRoomIds: ["room-remote-teaching"],
+      enabled: true
+    }
+  ],
+  meetingSessions: [
+    {
+      id: "MEET-DEMO-001",
+      title: "演示示教会话",
+      roomId: "room-teaching-hall",
+      surgeryId: "SURG-DEMO-001",
+      status: "open",
+      createdBy: "USER-TEACH",
+      createdAt: "2026-06-29T09:05:00.000Z"
+    }
+  ],
+  meetingMembers: [
+    {
+      id: "MEM-DEMO-001",
+      meetingId: "MEET-DEMO-001",
+      userId: "USER-TEACH",
+      displayName: "示教主持",
+      role: "host",
+      audioMuted: false
+    },
+    {
+      id: "MEM-DEMO-002",
+      meetingId: "MEET-DEMO-001",
+      userId: "USER-REMOTE",
+      displayName: "远程专家",
+      role: "speaker",
+      audioMuted: true
+    }
+  ],
+  remoteEndpoints: [
+    {
+      id: "RT-PC-ACCESS-01",
+      name: "主任办公室电脑",
+      deviceType: "office_pc",
+      roomId: "room-remote-teaching",
+      authorized: true,
+      network: "lan",
+      status: "online"
+    },
+    {
+      id: "RT-MOBILE-ACCESS-01",
+      name: "移动端示教访问",
+      deviceType: "mobile",
+      roomId: "room-remote-teaching",
+      authorized: false,
+      network: "wifi",
+      status: "unknown"
+    }
+  ],
+  audioEndpoints: [
+    {
+      id: "AUD-OR-MIC-01",
+      roomId: "room-or-standard",
+      name: "手术室麦克风",
+      kind: "microphone",
+      muted: false,
+      volume: 80,
+      status: "online"
+    },
+    {
+      id: "AUD-TH-SPK-01",
+      roomId: "room-teaching-hall",
+      name: "示教室壁挂音箱",
+      kind: "speaker",
+      muted: false,
+      volume: 70,
+      status: "online"
+    }
   ]
 };
