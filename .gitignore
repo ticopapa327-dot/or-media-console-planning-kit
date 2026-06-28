@@ -9,6 +9,7 @@
 *.rar
 tmp/
 output/
+data/
 dist/
 coverage/
 

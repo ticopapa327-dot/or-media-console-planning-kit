@@ -21,6 +21,24 @@ button {
   font: inherit;
 }
 
+input,
+select {
+  background: #ffffff;
+  border: 1px solid #cbd7d7;
+  border-radius: 6px;
+  color: #182026;
+  font: inherit;
+  min-height: 38px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+input:focus,
+select:focus {
+  border-color: #28666e;
+  outline: 2px solid #cce7e3;
+}
+
 .shell {
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -92,6 +110,12 @@ nav {
   margin-bottom: 24px;
 }
 
+.topActions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
 .topbar h1,
 .sectionHeader h2,
 .deviceCard h3 {
@@ -132,6 +156,69 @@ nav {
 .healthBadge svg {
   height: 18px;
   width: 18px;
+}
+
+.iconButton,
+.buttonRow button,
+.formStack button,
+.miniActions button,
+.connectionActions button {
+  align-items: center;
+  border: 1px solid #b8d9ca;
+  border-radius: 7px;
+  background: #e6f6ef;
+  color: #0f6f55;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+.iconButton,
+.miniActions button,
+.connectionActions button {
+  aspect-ratio: 1;
+  padding: 8px;
+  width: 38px;
+}
+
+.iconButton svg,
+.buttonRow svg,
+.formStack button svg,
+.miniActions svg,
+.connectionActions button svg {
+  height: 16px;
+  width: 16px;
+}
+
+.buttonRow button:hover,
+.formStack button:hover,
+.iconButton:hover,
+.miniActions button:hover,
+.connectionActions button:hover {
+  background: #d6f0e6;
+}
+
+.alert {
+  border-radius: 8px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+}
+
+.alert.error {
+  background: #ffe6e4;
+  border: 1px solid #f1b6b0;
+  color: #9a2c25;
+}
+
+.alert.warning {
+  background: #fff5db;
+  border: 1px solid #eed28d;
+  color: #765300;
 }
 
 .metricGrid {
@@ -212,6 +299,67 @@ nav {
   margin: 0 0 18px;
 }
 
+.formGrid {
+  border-bottom: 1px solid #e0e8e8;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+}
+
+.roomForm {
+  grid-template-columns: 1fr 1.4fr 1fr;
+}
+
+.addForm {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.formStack {
+  border-bottom: 1px solid #e0e8e8;
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field span {
+  color: #5f6f78;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.field.wide {
+  grid-column: 1 / -1;
+}
+
+.compactField {
+  gap: 4px;
+}
+
+.compactField input,
+.compactField select {
+  min-height: 34px;
+}
+
+.buttonRow {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.listHeader {
+  margin-top: 4px;
+}
+
 .deviceGrid {
   display: grid;
   gap: 12px;
@@ -221,7 +369,7 @@ nav {
 .deviceCard {
   display: grid;
   gap: 10px;
-  min-height: 180px;
+  min-height: 248px;
   padding: 14px;
 }
 
@@ -247,6 +395,17 @@ nav {
 .deviceCard p {
   color: #52656e;
   margin: 0;
+}
+
+.inlineControls {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.miniActions {
+  display: flex;
+  gap: 6px;
 }
 
 .status {
@@ -291,9 +450,27 @@ nav {
   padding: 12px;
 }
 
+.connectionRow.editable {
+  align-items: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .connectionRow div {
   display: grid;
   gap: 4px;
+}
+
+.connectionFields {
+  display: grid;
+  gap: 8px;
+}
+
+.connectionActions {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  min-width: 110px;
 }
 
 .connectionRow strong {
@@ -311,6 +488,12 @@ nav {
   padding: 6px 8px;
 }
 
+.editableList {
+  max-height: 920px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
 @media (max-width: 1180px) {
   .metricGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -321,6 +504,12 @@ nav {
   }
 
   .deviceGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .formGrid,
+  .roomForm,
+  .addForm {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -347,12 +536,29 @@ nav {
     flex-direction: column;
   }
 
+  .topActions {
+    align-items: stretch;
+    width: 100%;
+  }
+
   .topbar h1 {
     font-size: 24px;
   }
 
   .metricGrid,
-  .deviceGrid {
+  .deviceGrid,
+  .formGrid,
+  .roomForm,
+  .addForm,
+  .inlineControls {
     grid-template-columns: 1fr;
+  }
+
+  .connectionRow.editable {
+    grid-template-columns: 1fr;
+  }
+
+  .connectionActions {
+    grid-template-columns: 1fr 38px 38px;
   }
 }

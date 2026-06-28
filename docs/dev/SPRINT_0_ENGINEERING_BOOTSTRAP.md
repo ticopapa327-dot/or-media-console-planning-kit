@@ -40,6 +40,10 @@ The current automated checks cover:
 - API topology endpoint.
 - First dashboard data assumptions.
 
+## Status
+
+Completed in commit `77ae023`.
+
 ## Next Sprint
 
 Sprint 1 should replace the in-memory repository with a real persistence adapter or migration runner, then expose CRUD operations for rooms, devices, ports, connections, signal sources and display targets.
