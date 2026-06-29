@@ -37,6 +37,7 @@ export interface TopologyRepository {
   getRoom(roomId: string): Room | undefined;
   validate(): ValidationIssue[];
   reset(): TopologyCatalog;
+  replace(catalog: Partial<TopologyCatalog>): TopologyCatalog;
   upsertRoom(room: Room): TopologyCatalog;
   deleteRoom(roomId: string): TopologyCatalog;
   upsertDevice(device: Device): TopologyCatalog;
@@ -104,6 +105,10 @@ export class InMemoryTopologyRepository implements TopologyRepository {
 
   reset(): TopologyCatalog {
     return this.save(cloneCatalog(STANDARD_TOPOLOGY));
+  }
+
+  replace(catalog: Partial<TopologyCatalog>): TopologyCatalog {
+    return this.save(normalizeCatalog(catalog));
   }
 
   upsertRoom(room: Room): TopologyCatalog {

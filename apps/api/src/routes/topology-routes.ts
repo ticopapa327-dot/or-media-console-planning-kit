@@ -22,6 +22,7 @@ import type {
   SyntheticCaseRequest,
   SystemAlert,
   SurgeryCase,
+  TopologyCatalog,
   UserAccount
 } from "@or-media-console/shared";
 import { RepositoryError, type TopologyRepository } from "../repositories/topology-repository";
@@ -102,6 +103,23 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
       return auditedResponse(
         repository,
         auditLog(request, repository, "topology.reset", "topology", "STANDARD_TOPOLOGY", "拓扑已重置为标准版种子数据")
+      );
+    })
+  );
+
+  app.get("/api/admin/topology/backup", async () => repository.getCatalog());
+
+  app.post<{ Body: Partial<TopologyCatalog> }>("/api/admin/topology/restore", async (request, reply) =>
+    withRepositoryError(reply, () => {
+      const restored = repository.replace(request.body);
+
+      return auditedResponse(
+        repository,
+        auditLog(request, repository, "topology.restore", "topology", restored.version, "拓扑已从备份恢复", {
+          roomCount: restored.rooms.length,
+          deviceCount: restored.devices.length,
+          connectionCount: restored.connections.length
+        })
       );
     })
   );

@@ -159,6 +159,35 @@ describe("API app", () => {
     expect(body.catalog.rooms.some((room: { id: string }) => room.id === "room-before-reset")).toBe(false);
   });
 
+  it("backs up and restores topology through admin endpoints", async () => {
+    const app = await createApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/admin/rooms",
+      payload: {
+        id: "room-backup-restore",
+        name: "备份恢复房间",
+        type: "operating_room",
+        description: "验证备份恢复"
+      }
+    });
+
+    const backup = await app.inject({ method: "GET", url: "/api/admin/topology/backup" });
+    await app.inject({ method: "POST", url: "/api/admin/topology/reset" });
+
+    const restored = await app.inject({
+      method: "POST",
+      url: "/api/admin/topology/restore",
+      payload: backup.json()
+    });
+    const body = restored.json();
+
+    expect(restored.statusCode).toBe(200);
+    expect(body.summary.roomCount).toBe(5);
+    expect(body.catalog.rooms.some((room: { id: string }) => room.id === "room-backup-restore")).toBe(true);
+    expect(body.catalog.auditLogs.some((entry: { action: string }) => entry.action === "topology.restore")).toBe(true);
+  });
+
   it("creates and disconnects route sessions", async () => {
     const app = await createApp();
     const created = await app.inject({

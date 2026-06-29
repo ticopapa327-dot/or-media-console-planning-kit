@@ -44,6 +44,8 @@ Read endpoints:
 Admin endpoints:
 
 - `POST /api/admin/topology/reset`
+- `GET /api/admin/topology/backup`
+- `POST /api/admin/topology/restore`
 - `GET /api/admin/rooms`
 - `POST /api/admin/rooms`
 - `PUT /api/admin/rooms/:roomId`

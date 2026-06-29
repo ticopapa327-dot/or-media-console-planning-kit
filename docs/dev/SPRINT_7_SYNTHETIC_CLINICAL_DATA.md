@@ -66,9 +66,9 @@ Automated checks cover:
 
 ## Next Sprint
 
-Sprint 7B should continue with persistence:
+Sprint 7B should continue with demo persistence and recovery:
 
-- file-backed or database-backed repository wiring for demo state
-- seed loader and reset strategy
-- backup/restore commands
-- deployment notes for local demo data
+- use the existing file-backed repository for runtime demo state
+- add backup and restore endpoints
+- audit restore operations
+- document local demo data handling

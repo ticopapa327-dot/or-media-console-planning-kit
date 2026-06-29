@@ -21,6 +21,7 @@
 - [ ] Alerts can be acknowledged and resolved.
 - [ ] Audit logs are written for high-risk actions.
 - [ ] Status events are written when device or endpoint status changes.
+- [ ] Topology backup and restore endpoints work and restore operations are audited.
 
 ## Documentation / 文档
 
@@ -49,3 +50,4 @@
 - [ ] A teaching meeting can be created and closed.
 - [ ] A remote endpoint authorization change creates an audit entry.
 - [ ] A seeded alert can be acknowledged.
+- [ ] A topology backup can be exported and restored.
