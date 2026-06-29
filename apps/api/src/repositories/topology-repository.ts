@@ -635,7 +635,8 @@ function normalizeCatalog(catalog: Partial<TopologyCatalog>): TopologyCatalog {
     surgeries: catalog.surgeries ?? [],
     recordingTasks: catalog.recordingTasks ?? [],
     mediaAssets: catalog.mediaAssets ?? [],
-    users: catalog.users ?? [],
+    users: mergeById(STANDARD_TOPOLOGY.users, catalog.users ?? []),
+    roleCapabilities: mergeById(STANDARD_TOPOLOGY.roleCapabilities, catalog.roleCapabilities ?? []),
     meetingSessions: catalog.meetingSessions ?? [],
     meetingMembers: catalog.meetingMembers ?? [],
     remoteEndpoints: catalog.remoteEndpoints ?? [],
@@ -671,6 +672,17 @@ function upsertListById<T extends { id: string }>(list: T[], entity: T): T[] {
   }
 
   return list.map((item) => (item.id === entity.id ? entity : item));
+}
+
+function mergeById<T extends { id?: string; role?: string }>(defaults: T[], overrides: T[]): T[] {
+  const identity = (item: T) => item.id ?? item.role ?? "";
+  const merged = new Map(defaults.map((item) => [identity(item), item]));
+
+  for (const item of overrides) {
+    merged.set(identity(item), item);
+  }
+
+  return [...merged.values()];
 }
 
 function withStatusEventForChange(

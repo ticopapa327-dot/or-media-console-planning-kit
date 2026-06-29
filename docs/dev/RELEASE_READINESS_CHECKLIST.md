@@ -15,6 +15,7 @@
 - [ ] Video route creation, conflict detection and disconnect work.
 - [ ] Patient, surgery, recording and media asset workflows work.
 - [ ] Teaching meetings, members, remote authorization and audio controls work.
+- [ ] Local operator roles block unauthorized high-risk actions.
 - [ ] Alerts can be acknowledged and resolved.
 - [ ] Audit logs are written for high-risk actions.
 - [ ] Status events are written when device or endpoint status changes.

@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import type {
   AlertSeverity,
   AlertStatus,
+  AuthSession,
   AudioEndpoint,
   Connection,
   ConnectionKind,
@@ -40,7 +41,8 @@ import type {
   SurgeryCase,
   SurgeryStatus,
   TopologyCatalog,
-  TopologySummary
+  TopologySummary,
+  UserRole
 } from "@or-media-console/shared";
 import {
   acknowledgeAlert,
@@ -59,6 +61,7 @@ import {
   deleteRoute,
   disconnectRoute,
   failRecording,
+  fetchSession,
   fetchTopology,
   pauseRecording,
   resetTopology,
@@ -76,6 +79,7 @@ import {
   saveRoom,
   saveRoute,
   saveSurgery,
+  setApiActor,
   startRecording,
   stopRecording,
   type TopologyResponse
@@ -181,6 +185,19 @@ function meetingMemberRoleText(role: MeetingMemberRole): string {
     host: "主持",
     speaker: "发言",
     viewer: "观看"
+  };
+
+  return labels[role];
+}
+
+function userRoleText(role: UserRole): string {
+  const labels: Record<UserRole, string> = {
+    or_operator: "手术室操作",
+    teaching_user: "示教用户",
+    remote_expert: "远程专家",
+    device_engineer: "设备工程",
+    admin: "管理员",
+    auditor: "审计员"
   };
 
   return labels[role];
@@ -323,6 +340,8 @@ function createMemberDraft(): MeetingMember {
 
 export function App() {
   const [topology, setTopology] = useState<TopologyResponse | null>(null);
+  const [actorId, setActorId] = useState("USER-ADMIN");
+  const [session, setSession] = useState<AuthSession | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState(defaultRoomId);
   const [roomDraft, setRoomDraft] = useState<Room>(createRoomDraft);
   const [deviceDraft, setDeviceDraft] = useState<Device>(() => createDeviceDraft(defaultRoomId));
@@ -337,11 +356,13 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void fetchTopology().then((response) => {
-      setTopology(response);
+    setApiActor(actorId);
+    void Promise.all([fetchTopology(), fetchSession()]).then(([topologyResponse, sessionResponse]) => {
+      setTopology(topologyResponse);
+      setSession(sessionResponse);
       setNotice("拓扑已载入");
     });
-  }, []);
+  }, [actorId]);
 
   const catalog: TopologyCatalog | undefined = topology?.catalog;
   const summary = topology?.summary;
@@ -567,6 +588,22 @@ export function App() {
             <h1>数字化手术室媒体控制台</h1>
           </div>
           <div className="topActions">
+            <label className="actorPicker">
+              <span>操作者</span>
+              <select value={actorId} onChange={(event) => setActorId(event.target.value)}>
+                {(catalog?.users ?? []).map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.displayName} · {userRoleText(user.role)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {session ? (
+              <div className="healthBadge">
+                <ShieldCheck aria-hidden="true" />
+                <span>{userRoleText(session.user.role)} · {session.permissions.length} 项权限</span>
+              </div>
+            ) : null}
             <div className="healthBadge">
               <Activity aria-hidden="true" />
               <span>{notice}</span>

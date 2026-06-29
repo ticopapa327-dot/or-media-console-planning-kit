@@ -1,5 +1,6 @@
-import type { FastifyInstance, FastifyReply } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type {
+  AuthSession,
   AuditLogEntry,
   Connection,
   Device,
@@ -12,6 +13,7 @@ import type {
   MeetingMember,
   MeetingSession,
   Patient,
+  PermissionKey,
   RecordingTask,
   RemoteEndpoint,
   Room,
@@ -24,6 +26,43 @@ import type {
 import { RepositoryError, type TopologyRepository } from "../repositories/topology-repository";
 
 export async function registerTopologyRoutes(app: FastifyInstance, repository: TopologyRepository): Promise<void> {
+  app.addHook("preHandler", async (request, reply) => {
+    const permission = requiredPermission(request.method, request.url);
+
+    if (!permission) {
+      return;
+    }
+
+    const session = resolveSession(request, repository);
+
+    if (!session) {
+      return reply.code(401).send({
+        error: "AUTH_REQUIRED",
+        message: "A valid user is required"
+      });
+    }
+
+    if (!session.permissions.includes(permission)) {
+      return reply.code(403).send({
+        error: "PERMISSION_DENIED",
+        message: `User ${session.user.id} does not have ${permission}`
+      });
+    }
+  });
+
+  app.get("/api/auth/session", async (request, reply) => {
+    const session = resolveSession(request, repository);
+
+    if (!session) {
+      return reply.code(401).send({
+        error: "AUTH_REQUIRED",
+        message: "A valid user is required"
+      });
+    }
+
+    return session;
+  });
+
   app.get("/api/topology", async () => ({
     catalog: repository.getCatalog(),
     summary: repository.getSummary(),
@@ -56,12 +95,12 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
     };
   });
 
-  app.post("/api/admin/topology/reset", async (_request, reply) =>
+  app.post("/api/admin/topology/reset", async (request, reply) =>
     withRepositoryError(reply, () => {
       repository.reset();
       return auditedResponse(
         repository,
-        auditLog("topology.reset", "topology", "STANDARD_TOPOLOGY", "拓扑已重置为标准版种子数据")
+        auditLog(request, repository, "topology.reset", "topology", "STANDARD_TOPOLOGY", "拓扑已重置为标准版种子数据")
       );
     })
   );
@@ -340,7 +379,7 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
         repository.startRecording(recording);
         return auditedResponse(
           repository,
-          auditLog("recording.start", "recording", recording.id, `录制 ${recording.id} 已开始`, {
+          auditLog(request, repository, "recording.start", "recording", recording.id, `录制 ${recording.id} 已开始`, {
             sourceId: recording.sourceId,
             surgeryId: recording.surgeryId
           })
@@ -353,7 +392,7 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
       repository.pauseRecording(request.params.recordingId);
       return auditedResponse(
         repository,
-        auditLog("recording.pause", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已暂停`)
+        auditLog(request, repository, "recording.pause", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已暂停`)
       );
     })
   );
@@ -363,7 +402,7 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
       repository.resumeRecording(request.params.recordingId);
       return auditedResponse(
         repository,
-        auditLog("recording.resume", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已恢复`)
+        auditLog(request, repository, "recording.resume", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已恢复`)
       );
     })
   );
@@ -373,7 +412,7 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
       repository.stopRecording(request.params.recordingId);
       return auditedResponse(
         repository,
-        auditLog("recording.stop", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已停止`)
+        auditLog(request, repository, "recording.stop", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已停止`)
       );
     })
   );
@@ -383,7 +422,7 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
       repository.failRecording(request.params.recordingId);
       return auditedResponse(
         repository,
-        auditLog("recording.fail", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已标记失败`)
+        auditLog(request, repository, "recording.fail", "recording", request.params.recordingId, `录制 ${request.params.recordingId} 已标记失败`)
       );
     })
   );
@@ -452,7 +491,7 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
         repository.upsertMeetingSession(meeting);
         return auditedResponse(
           repository,
-          auditLog("meeting.create", "meeting", meeting.id, `会议 ${meeting.id} 已创建`, {
+          auditLog(request, repository, "meeting.create", "meeting", meeting.id, `会议 ${meeting.id} 已创建`, {
             roomId: meeting.roomId,
             createdBy: meeting.createdBy
           })
@@ -477,7 +516,7 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
       repository.closeMeetingSession(request.params.meetingId);
       return auditedResponse(
         repository,
-        auditLog("meeting.close", "meeting", request.params.meetingId, `会议 ${request.params.meetingId} 已关闭`)
+        auditLog(request, repository, "meeting.close", "meeting", request.params.meetingId, `会议 ${request.params.meetingId} 已关闭`)
       );
     })
   );
@@ -523,10 +562,18 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
       repository.upsertRemoteEndpoint(endpoint);
       return auditedResponse(
         repository,
-        auditLog("remote_endpoint.update", "remote_endpoint", request.params.endpointId, `远程端 ${request.params.endpointId} 已更新`, {
-          authorized: endpoint.authorized,
-          status: endpoint.status
-        })
+        auditLog(
+          request,
+          repository,
+          "remote_endpoint.update",
+          "remote_endpoint",
+          request.params.endpointId,
+          `远程端 ${request.params.endpointId} 已更新`,
+          {
+            authorized: endpoint.authorized,
+            status: endpoint.status
+          }
+        )
       );
     })
   );
@@ -550,11 +597,19 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
       repository.upsertAudioEndpoint(endpoint);
       return auditedResponse(
         repository,
-        auditLog("audio_endpoint.update", "audio_endpoint", request.params.endpointId, `音频端点 ${request.params.endpointId} 已更新`, {
-          muted: endpoint.muted,
-          volume: endpoint.volume,
-          status: endpoint.status
-        })
+        auditLog(
+          request,
+          repository,
+          "audio_endpoint.update",
+          "audio_endpoint",
+          request.params.endpointId,
+          `音频端点 ${request.params.endpointId} 已更新`,
+          {
+            muted: endpoint.muted,
+            volume: endpoint.volume,
+            status: endpoint.status
+          }
+        )
       );
     })
   );
@@ -572,7 +627,7 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
       repository.upsertSystemAlert(request.body);
       return auditedResponse(
         repository,
-        auditLog("alert.create", "topology", request.body.id, `告警 ${request.body.id} 已创建`, {
+        auditLog(request, repository, "alert.create", "topology", request.body.id, `告警 ${request.body.id} 已创建`, {
           severity: request.body.severity,
           status: request.body.status
         })
@@ -586,7 +641,7 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
       repository.acknowledgeSystemAlert(request.params.alertId, actor);
       return auditedResponse(
         repository,
-        auditLog("alert.acknowledge", "topology", request.params.alertId, `告警 ${request.params.alertId} 已确认`, {
+        auditLog(request, repository, "alert.acknowledge", "topology", request.params.alertId, `告警 ${request.params.alertId} 已确认`, {
           actor
         })
       );
@@ -599,7 +654,7 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
       repository.resolveSystemAlert(request.params.alertId, actor);
       return auditedResponse(
         repository,
-        auditLog("alert.resolve", "topology", request.params.alertId, `告警 ${request.params.alertId} 已解决`, {
+        auditLog(request, repository, "alert.resolve", "topology", request.params.alertId, `告警 ${request.params.alertId} 已解决`, {
           actor
         })
       );
@@ -622,6 +677,8 @@ function auditedResponse(repository: TopologyRepository, entry: AuditLogEntry) {
 }
 
 function auditLog(
+  request: FastifyRequest,
+  repository: TopologyRepository,
   action: string,
   entityType: GovernanceEntityType,
   entityId: string,
@@ -630,7 +687,7 @@ function auditLog(
 ): AuditLogEntry {
   return {
     id: createRuntimeId("AUDIT"),
-    actor: "system-api",
+    actor: resolveSession(request, repository)?.user.id ?? "system-api",
     action,
     entityType,
     entityId,
@@ -638,6 +695,66 @@ function auditLog(
     summary,
     metadata
   };
+}
+
+function resolveSession(request: FastifyRequest, repository: TopologyRepository): AuthSession | undefined {
+  const catalog = repository.getCatalog();
+  const header = request.headers["x-user-id"];
+  const requestedUserId = Array.isArray(header) ? header[0] : header;
+  const defaultUser = catalog.users.find((user) => user.id === "USER-ADMIN") ?? catalog.users.find((user) => user.enabled);
+  const user = catalog.users.find((candidate) => candidate.id === (requestedUserId ?? defaultUser?.id) && candidate.enabled);
+
+  if (!user) {
+    return undefined;
+  }
+
+  return {
+    user,
+    permissions: catalog.roleCapabilities.find((capability) => capability.role === user.role)?.permissions ?? []
+  };
+}
+
+function requiredPermission(method: string, rawUrl: string): PermissionKey | undefined {
+  const path = rawUrl.split("?")[0] ?? rawUrl;
+  const upperMethod = method.toUpperCase();
+
+  if (path === "/api/audit-logs" || path === "/api/status-events") {
+    return "audit:read";
+  }
+
+  if (upperMethod === "GET") {
+    return undefined;
+  }
+
+  if (path.startsWith("/api/admin/") || path.startsWith("/api/users")) {
+    return path.startsWith("/api/users") ? "user:manage" : "topology:write";
+  }
+
+  if (path.startsWith("/api/routes") || path.startsWith("/api/layouts")) {
+    return "route:control";
+  }
+
+  if (path.startsWith("/api/clinical") || path.startsWith("/api/recordings") || path.startsWith("/api/media-assets")) {
+    return "recording:control";
+  }
+
+  if (path.startsWith("/api/meetings") || path.startsWith("/api/meeting-members")) {
+    return "meeting:manage";
+  }
+
+  if (path.startsWith("/api/remote-endpoints")) {
+    return "remote:authorize";
+  }
+
+  if (path.startsWith("/api/audio-endpoints")) {
+    return "audio:control";
+  }
+
+  if (path.startsWith("/api/alerts")) {
+    return "alert:manage";
+  }
+
+  return undefined;
 }
 
 function createRuntimeId(prefix: string): string {

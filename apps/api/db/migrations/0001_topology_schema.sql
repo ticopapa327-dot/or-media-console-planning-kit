@@ -62,6 +62,19 @@ create table storage_volumes (
   status text not null
 );
 
+create table users (
+  id text primary key,
+  display_name text not null,
+  role text not null,
+  allowed_room_ids jsonb not null default '[]'::jsonb,
+  enabled boolean not null default true
+);
+
+create table role_capabilities (
+  role text primary key,
+  permissions jsonb not null default '[]'::jsonb
+);
+
 create table audit_logs (
   id text primary key,
   actor text not null,

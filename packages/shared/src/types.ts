@@ -40,6 +40,18 @@ export type ChecksumStatus = "pending" | "verified" | "failed";
 
 export type UserRole = "or_operator" | "teaching_user" | "remote_expert" | "device_engineer" | "admin" | "auditor";
 
+export type PermissionKey =
+  | "topology:read"
+  | "topology:write"
+  | "route:control"
+  | "recording:control"
+  | "meeting:manage"
+  | "remote:authorize"
+  | "audio:control"
+  | "alert:manage"
+  | "audit:read"
+  | "user:manage";
+
 export type MeetingStatus = "open" | "closed";
 
 export type MeetingMemberRole = "host" | "viewer" | "speaker";
@@ -212,6 +224,16 @@ export interface UserAccount {
   enabled: boolean;
 }
 
+export interface RoleCapability {
+  role: UserRole;
+  permissions: PermissionKey[];
+}
+
+export interface AuthSession {
+  user: UserAccount;
+  permissions: PermissionKey[];
+}
+
 export interface MeetingSession {
   id: string;
   title: string;
@@ -305,6 +327,7 @@ export interface TopologyCatalog {
   recordingTasks: RecordingTask[];
   mediaAssets: MediaAsset[];
   users: UserAccount[];
+  roleCapabilities: RoleCapability[];
   meetingSessions: MeetingSession[];
   meetingMembers: MeetingMember[];
   remoteEndpoints: RemoteEndpoint[];
@@ -329,6 +352,8 @@ export interface TopologySummary {
   openMeetingCount: number;
   authorizedRemoteEndpointCount: number;
   audioEndpointCount: number;
+  enabledUserCount: number;
+  roleCapabilityCount: number;
   auditLogCount: number;
   openAlertCount: number;
   criticalAlertCount: number;

@@ -57,7 +57,7 @@
 
 从 `docs/prelaunch/00_文档清单与使用说明.md` 开始阅读。若你希望把自己的工程经验产品化，可以先参考 `02_PRD`、`03_SRS` 和 `10_Codex工程协作指南`，再根据自己的行业场景替换功能域、风险项和验收标准。
 
-进入开发阶段时，可阅读 `docs/dev/SPRINT_0_ENGINEERING_BOOTSTRAP.md`、`docs/dev/SPRINT_1_TOPOLOGY_CONFIGURATION.md`、`docs/dev/SPRINT_2_VIDEO_ROUTING.md`、`docs/dev/SPRINT_3_RECORDING_MEDIA.md`、`docs/dev/SPRINT_4_TEACHING_REMOTE_AUDIO.md` 和 `docs/dev/SPRINT_5_QUALITY_RELEASE.md`。开放前可使用 `docs/dev/RELEASE_READINESS_CHECKLIST.md` 和 `docs/dev/DEMO_SCRIPT.md`。从以下命令启动：
+进入开发阶段时，可阅读 `docs/dev/SPRINT_0_ENGINEERING_BOOTSTRAP.md`、`docs/dev/SPRINT_1_TOPOLOGY_CONFIGURATION.md`、`docs/dev/SPRINT_2_VIDEO_ROUTING.md`、`docs/dev/SPRINT_3_RECORDING_MEDIA.md`、`docs/dev/SPRINT_4_TEACHING_REMOTE_AUDIO.md`、`docs/dev/SPRINT_5_QUALITY_RELEASE.md` 和 `docs/dev/SPRINT_6_AUTH_RBAC.md`。开放前可使用 `docs/dev/RELEASE_READINESS_CHECKLIST.md` 和 `docs/dev/DEMO_SCRIPT.md`。从以下命令启动：
 
 ```powershell
 pnpm install
@@ -114,7 +114,7 @@ Start with `docs/prelaunch/00_文档清单与使用说明.md`. If you are produc
 
 For implementation planning, continue with `14_MVP开发任务清单.md` and `15_技术实施路线图.md`. They translate the documentation package into executable MVP tasks and a first technical roadmap.
 
-For the runnable engineering skeleton, topology configuration, video routing, recording/media, teaching/remote/audio, and quality/release increments, read `docs/dev/SPRINT_0_ENGINEERING_BOOTSTRAP.md`, `docs/dev/SPRINT_1_TOPOLOGY_CONFIGURATION.md`, `docs/dev/SPRINT_2_VIDEO_ROUTING.md`, `docs/dev/SPRINT_3_RECORDING_MEDIA.md`, `docs/dev/SPRINT_4_TEACHING_REMOTE_AUDIO.md`, and `docs/dev/SPRINT_5_QUALITY_RELEASE.md`. Use `docs/dev/RELEASE_READINESS_CHECKLIST.md` and `docs/dev/DEMO_SCRIPT.md` before a public demo, then run `pnpm install`, `pnpm test`, `pnpm build`, and `pnpm dev`.
+For the runnable engineering skeleton, topology configuration, video routing, recording/media, teaching/remote/audio, quality/release, and local auth/RBAC increments, read `docs/dev/SPRINT_0_ENGINEERING_BOOTSTRAP.md`, `docs/dev/SPRINT_1_TOPOLOGY_CONFIGURATION.md`, `docs/dev/SPRINT_2_VIDEO_ROUTING.md`, `docs/dev/SPRINT_3_RECORDING_MEDIA.md`, `docs/dev/SPRINT_4_TEACHING_REMOTE_AUDIO.md`, `docs/dev/SPRINT_5_QUALITY_RELEASE.md`, and `docs/dev/SPRINT_6_AUTH_RBAC.md`. Use `docs/dev/RELEASE_READINESS_CHECKLIST.md` and `docs/dev/DEMO_SCRIPT.md` before a public demo, then run `pnpm install`, `pnpm test`, `pnpm build`, and `pnpm dev`.
 
 ### Disclaimer
 

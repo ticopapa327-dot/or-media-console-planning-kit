@@ -116,6 +116,22 @@ nav {
   gap: 10px;
 }
 
+.actorPicker {
+  display: grid;
+  gap: 4px;
+  min-width: 220px;
+}
+
+.actorPicker span {
+  color: #5f6f78;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.actorPicker select {
+  min-height: 38px;
+}
+
 .topbar h1,
 .sectionHeader h2,
 .deviceCard h3 {
@@ -809,7 +825,12 @@ nav {
 
   .topActions {
     align-items: stretch;
+    flex-wrap: wrap;
     width: 100%;
+  }
+
+  .actorPicker {
+    min-width: 100%;
   }
 
   .topbar h1 {

@@ -745,6 +745,13 @@ export const STANDARD_TOPOLOGY: TopologyCatalog = {
   ],
   users: [
     {
+      id: "USER-ADMIN",
+      displayName: "系统管理员",
+      role: "admin",
+      allowedRoomIds: ["room-or-standard", "room-teaching-hall", "room-remote-teaching", "room-server-core"],
+      enabled: true
+    },
+    {
       id: "USER-OR-OP",
       displayName: "手术室操作员",
       role: "or_operator",
@@ -764,6 +771,50 @@ export const STANDARD_TOPOLOGY: TopologyCatalog = {
       role: "remote_expert",
       allowedRoomIds: ["room-remote-teaching"],
       enabled: true
+    },
+    {
+      id: "USER-AUDITOR",
+      displayName: "审计员",
+      role: "auditor",
+      allowedRoomIds: ["room-or-standard", "room-teaching-hall", "room-remote-teaching", "room-server-core"],
+      enabled: true
+    }
+  ],
+  roleCapabilities: [
+    {
+      role: "admin",
+      permissions: [
+        "topology:read",
+        "topology:write",
+        "route:control",
+        "recording:control",
+        "meeting:manage",
+        "remote:authorize",
+        "audio:control",
+        "alert:manage",
+        "audit:read",
+        "user:manage"
+      ]
+    },
+    {
+      role: "or_operator",
+      permissions: ["topology:read", "route:control", "recording:control", "audio:control"]
+    },
+    {
+      role: "teaching_user",
+      permissions: ["topology:read", "meeting:manage", "audio:control"]
+    },
+    {
+      role: "remote_expert",
+      permissions: ["topology:read"]
+    },
+    {
+      role: "device_engineer",
+      permissions: ["topology:read", "topology:write", "alert:manage", "audit:read"]
+    },
+    {
+      role: "auditor",
+      permissions: ["topology:read", "audit:read"]
     }
   ],
   meetingSessions: [

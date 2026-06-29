@@ -20,6 +20,8 @@ describe("standard topology seed", () => {
       openMeetingCount: 1,
       authorizedRemoteEndpointCount: 1,
       audioEndpointCount: 2,
+      enabledUserCount: 5,
+      roleCapabilityCount: 6,
       auditLogCount: 1,
       openAlertCount: 1,
       criticalAlertCount: 0,
@@ -79,6 +81,17 @@ describe("standard topology seed", () => {
           audioMuted: true
         }
       ],
+      users: [
+        ...STANDARD_TOPOLOGY.users,
+        {
+          id: "USER-BROKEN-ROLE",
+          displayName: "缺失角色用户",
+          role: "device_engineer",
+          allowedRoomIds: ["room-or-standard"],
+          enabled: true
+        }
+      ],
+      roleCapabilities: STANDARD_TOPOLOGY.roleCapabilities.filter((capability) => capability.role !== "device_engineer"),
       systemAlerts: [
         ...STANDARD_TOPOLOGY.systemAlerts,
         {
@@ -102,6 +115,7 @@ describe("standard topology seed", () => {
     expect(codes).toContain("RECORDING_STORAGE_MISSING");
     expect(codes).toContain("MEMBER_MEETING_MISSING");
     expect(codes).toContain("MEMBER_USER_MISSING");
+    expect(codes).toContain("USER_ROLE_CAPABILITY_MISSING");
     expect(codes).toContain("ALERT_ACKNOWLEDGEMENT_INCOMPLETE");
   });
 });

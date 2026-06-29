@@ -22,6 +22,8 @@ export function summarizeTopology(catalog: TopologyCatalog): TopologySummary {
     openMeetingCount: catalog.meetingSessions.filter((meeting) => meeting.status === "open").length,
     authorizedRemoteEndpointCount: catalog.remoteEndpoints.filter((endpoint) => endpoint.authorized).length,
     audioEndpointCount: catalog.audioEndpoints.length,
+    enabledUserCount: catalog.users.filter((user) => user.enabled).length,
+    roleCapabilityCount: catalog.roleCapabilities.length,
     auditLogCount: catalog.auditLogs.length,
     openAlertCount: catalog.systemAlerts.filter((alert) => alert.status === "open").length,
     criticalAlertCount: catalog.systemAlerts.filter((alert) => alert.status === "open" && alert.severity === "critical").length,
@@ -52,6 +54,7 @@ export function validateTopology(catalog: TopologyCatalog): ValidationIssue[] {
   issues.push(...findDuplicateIds("RECORDING_ID_DUPLICATE", "Recording task", catalog.recordingTasks.map((recording) => recording.id)));
   issues.push(...findDuplicateIds("MEDIA_ID_DUPLICATE", "Media asset", catalog.mediaAssets.map((asset) => asset.id)));
   issues.push(...findDuplicateIds("USER_ID_DUPLICATE", "User", catalog.users.map((user) => user.id)));
+  issues.push(...findDuplicateIds("ROLE_CAPABILITY_DUPLICATE", "Role capability", catalog.roleCapabilities.map((capability) => capability.role)));
   issues.push(...findDuplicateIds("MEETING_ID_DUPLICATE", "Meeting session", catalog.meetingSessions.map((meeting) => meeting.id)));
   issues.push(...findDuplicateIds("MEMBER_ID_DUPLICATE", "Meeting member", catalog.meetingMembers.map((member) => member.id)));
   issues.push(...findDuplicateIds("REMOTE_ENDPOINT_ID_DUPLICATE", "Remote endpoint", catalog.remoteEndpoints.map((endpoint) => endpoint.id)));
@@ -67,6 +70,7 @@ export function validateTopology(catalog: TopologyCatalog): ValidationIssue[] {
   const recordingIds = new Set(catalog.recordingTasks.map((recording) => recording.id));
   const userIds = new Set(catalog.users.map((user) => user.id));
   const meetingIds = new Set(catalog.meetingSessions.map((meeting) => meeting.id));
+  const capabilityRoles = new Set(catalog.roleCapabilities.map((capability) => capability.role));
 
   for (const device of catalog.devices) {
     if (!roomIds.has(device.roomId)) {
@@ -261,6 +265,13 @@ export function validateTopology(catalog: TopologyCatalog): ValidationIssue[] {
   }
 
   for (const user of catalog.users) {
+    if (!capabilityRoles.has(user.role)) {
+      issues.push({
+        code: "USER_ROLE_CAPABILITY_MISSING",
+        message: `User ${user.id} references role ${user.role} without role capability`
+      });
+    }
+
     for (const roomId of user.allowedRoomIds) {
       if (!roomIds.has(roomId)) {
         issues.push({

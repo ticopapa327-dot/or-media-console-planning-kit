@@ -1,6 +1,7 @@
 import {
   STANDARD_TOPOLOGY,
   summarizeTopology,
+  type AuthSession,
   type Connection,
   type Device,
   type AudioEndpoint,
@@ -19,15 +20,50 @@ import {
   type UserAccount
 } from "@or-media-console/shared";
 
+let apiActorId = "USER-ADMIN";
+
 export interface TopologyResponse {
   catalog: TopologyCatalog;
   summary: TopologySummary;
   validation: Array<{ code: string; message: string }>;
 }
 
+export function setApiActor(userId: string): void {
+  apiActorId = userId;
+}
+
+export async function fetchSession(): Promise<AuthSession> {
+  try {
+    const response = await fetch("/api/auth/session", {
+      headers: actorHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error(`API responded with ${response.status}`);
+    }
+
+    return (await response.json()) as AuthSession;
+  } catch {
+    const user = STANDARD_TOPOLOGY.users.find((candidate) => candidate.id === apiActorId) ?? {
+      id: "USER-ADMIN",
+      displayName: "系统管理员",
+      role: "admin" as const,
+      allowedRoomIds: [],
+      enabled: true
+    };
+
+    return {
+      user,
+      permissions: STANDARD_TOPOLOGY.roleCapabilities.find((capability) => capability.role === user.role)?.permissions ?? []
+    };
+  }
+}
+
 export async function fetchTopology(): Promise<TopologyResponse> {
   try {
-    const response = await fetch("/api/topology");
+    const response = await fetch("/api/topology", {
+      headers: actorHeaders()
+    });
 
     if (!response.ok) {
       throw new Error(`API responded with ${response.status}`);
@@ -286,7 +322,10 @@ async function sendTopologyRequest(url: string, init: RequestInit): Promise<Topo
     : init.headers;
   const response = await fetch(url, {
     ...init,
-    headers
+    headers: {
+      ...actorHeaders(),
+      ...headers
+    }
   });
 
   const body = (await response.json()) as TopologyResponse | { error: string; message: string };
@@ -297,4 +336,10 @@ async function sendTopologyRequest(url: string, init: RequestInit): Promise<Topo
   }
 
   return body as TopologyResponse;
+}
+
+function actorHeaders(): HeadersInit {
+  return {
+    "x-user-id": apiActorId
+  };
 }

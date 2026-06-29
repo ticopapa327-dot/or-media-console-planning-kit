@@ -31,8 +31,26 @@ describe("API app", () => {
     expect(body.summary.openAlertCount).toBe(1);
     expect(body.summary.auditLogCount).toBe(1);
     expect(body.summary.statusEventCount).toBe(1);
+    expect(body.summary.enabledUserCount).toBe(5);
+    expect(body.summary.roleCapabilityCount).toBe(6);
     expect(body.validation).toEqual([]);
     expect(body.catalog.rooms.map((room: { id: string }) => room.id)).toContain("room-or-standard");
+  });
+
+  it("reports the current local auth session", async () => {
+    const app = await createApp();
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/auth/session",
+      headers: {
+        "x-user-id": "USER-AUDITOR"
+      }
+    });
+    const body = response.json();
+
+    expect(response.statusCode).toBe(200);
+    expect(body.user.id).toBe("USER-AUDITOR");
+    expect(body.permissions).toContain("audit:read");
   });
 
   it("returns room-specific equipment and connections", async () => {
@@ -293,6 +311,9 @@ describe("API app", () => {
     const created = await app.inject({
       method: "POST",
       url: "/api/meetings",
+      headers: {
+        "x-user-id": "USER-TEACH"
+      },
       payload: {
         id: "MEET-TEST-001",
         title: "测试示教会议",
@@ -306,10 +327,34 @@ describe("API app", () => {
     expect(created.json().summary.openMeetingCount).toBe(2);
 
     const closed = await app.inject({ method: "POST", url: "/api/meetings/MEET-TEST-001/close" });
+    const closedBody = closed.json();
+    const meetingCreateAudit = closedBody.catalog.auditLogs.find((entry: { action: string }) => entry.action === "meeting.create");
 
     expect(closed.statusCode).toBe(200);
-    expect(closed.json().summary.openMeetingCount).toBe(1);
-    expect(closed.json().catalog.auditLogs.some((entry: { action: string }) => entry.action === "meeting.close")).toBe(true);
+    expect(closedBody.summary.openMeetingCount).toBe(1);
+    expect(closedBody.catalog.auditLogs.some((entry: { action: string }) => entry.action === "meeting.close")).toBe(true);
+    expect(meetingCreateAudit?.actor).toBe("USER-TEACH");
+  });
+
+  it("blocks control actions when the role has no permission", async () => {
+    const app = await createApp();
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/routes",
+      headers: {
+        "x-user-id": "USER-REMOTE"
+      },
+      payload: {
+        id: "ROUTE-DENIED",
+        sourceId: "SRC-DSA-CT",
+        targetId: "DISP-OR-LARGE",
+        label: "权限拒绝路由"
+      }
+    });
+    const body = response.json();
+
+    expect(response.statusCode).toBe(403);
+    expect(body.error).toBe("PERMISSION_DENIED");
   });
 
   it("updates remote endpoint authorization", async () => {
