@@ -20,6 +20,7 @@
 - [ ] Local operator roles block unauthorized high-risk actions.
 - [ ] Alerts can be acknowledged and resolved.
 - [ ] Audit logs are written for high-risk actions.
+- [ ] Audit logs can be filtered and exported for release evidence.
 - [ ] Status events are written when device or endpoint status changes.
 - [ ] Topology backup and restore endpoints work and restore operations are audited.
 
@@ -51,3 +52,4 @@
 - [ ] A remote endpoint authorization change creates an audit entry.
 - [ ] A seeded alert can be acknowledged.
 - [ ] A topology backup can be exported and restored.
+- [ ] Audit evidence for one workflow can be filtered and exported.

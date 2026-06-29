@@ -27,6 +27,16 @@ import type {
 } from "@or-media-console/shared";
 import { RepositoryError, type TopologyRepository } from "../repositories/topology-repository";
 
+interface AuditLogQuery {
+  actor?: string;
+  action?: string;
+  entityType?: GovernanceEntityType;
+  entityId?: string;
+  since?: string;
+  until?: string;
+  limit?: string;
+}
+
 export async function registerTopologyRoutes(app: FastifyInstance, repository: TopologyRepository): Promise<void> {
   app.addHook("preHandler", async (request, reply) => {
     const permission = requiredPermission(request.method, request.url);
@@ -677,7 +687,19 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
     withRepositoryError(reply, () => topologyResponse(repository.deleteAudioEndpoint(request.params.endpointId), repository))
   );
 
-  app.get("/api/audit-logs", async () => repository.getCatalog().auditLogs);
+  app.get<{ Querystring: AuditLogQuery }>("/api/audit-logs", async (request) =>
+    filterAuditLogs(repository.getCatalog().auditLogs, request.query)
+  );
+
+  app.get<{ Querystring: AuditLogQuery }>("/api/audit-logs/export", async (request, reply) => {
+    const entries = filterAuditLogs(repository.getCatalog().auditLogs, request.query);
+    const payload = entries.map((entry) => JSON.stringify(entry)).join("\n");
+
+    return reply
+      .header("content-disposition", 'attachment; filename="audit-logs.ndjson"')
+      .type("application/x-ndjson")
+      .send(payload ? `${payload}\n` : "");
+  });
 
   app.get("/api/alerts", async () => repository.getCatalog().systemAlerts);
 
@@ -721,6 +743,58 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
   );
 
   app.get("/api/status-events", async () => repository.getCatalog().statusEvents);
+}
+
+function filterAuditLogs(entries: AuditLogEntry[], query: AuditLogQuery): AuditLogEntry[] {
+  let filtered = entries;
+
+  if (query.actor) {
+    filtered = filtered.filter((entry) => entry.actor === query.actor);
+  }
+
+  if (query.action) {
+    filtered = filtered.filter((entry) => entry.action === query.action);
+  }
+
+  if (query.entityType) {
+    filtered = filtered.filter((entry) => entry.entityType === query.entityType);
+  }
+
+  if (query.entityId) {
+    filtered = filtered.filter((entry) => entry.entityId === query.entityId);
+  }
+
+  const since = parseOptionalTimestamp(query.since);
+  const until = parseOptionalTimestamp(query.until);
+
+  if (since !== undefined) {
+    filtered = filtered.filter((entry) => Date.parse(entry.occurredAt) >= since);
+  }
+
+  if (until !== undefined) {
+    filtered = filtered.filter((entry) => Date.parse(entry.occurredAt) <= until);
+  }
+
+  const limit = parsePositiveLimit(query.limit);
+  return limit === undefined ? filtered : filtered.slice(-limit);
+}
+
+function parseOptionalTimestamp(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parsePositiveLimit(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
 function createSyntheticCase(
@@ -837,7 +911,7 @@ function requiredPermission(method: string, rawUrl: string): PermissionKey | und
   const path = rawUrl.split("?")[0] ?? rawUrl;
   const upperMethod = method.toUpperCase();
 
-  if (path === "/api/audit-logs" || path === "/api/status-events") {
+  if (path.startsWith("/api/audit-logs") || path === "/api/status-events") {
     return "audit:read";
   }
 

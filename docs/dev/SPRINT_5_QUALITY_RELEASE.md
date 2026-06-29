@@ -33,6 +33,8 @@ This is still an MVP workflow. It does not implement production authentication, 
 Audit:
 
 - `GET /api/audit-logs`
+- `GET /api/audit-logs?actor=&action=&entityType=&entityId=&since=&until=&limit=`
+- `GET /api/audit-logs/export`
 
 Alerts:
 

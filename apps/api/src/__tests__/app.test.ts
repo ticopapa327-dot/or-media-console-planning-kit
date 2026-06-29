@@ -412,6 +412,44 @@ describe("API app", () => {
     expect(body.error).toBe("PERMISSION_DENIED");
   });
 
+  it("filters and exports audit logs for release evidence", async () => {
+    const app = await createApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/clinical/synthetic-case",
+      headers: {
+        "x-user-id": "USER-OR-OP"
+      },
+      payload: {
+        roomId: "room-or-standard",
+        seed: "audit-001"
+      }
+    });
+
+    const filtered = await app.inject({
+      method: "GET",
+      url: "/api/audit-logs?action=clinical.synthetic_case&actor=USER-OR-OP&limit=1",
+      headers: {
+        "x-user-id": "USER-AUDITOR"
+      }
+    });
+    const entries = filtered.json();
+    const exported = await app.inject({
+      method: "GET",
+      url: "/api/audit-logs/export?action=clinical.synthetic_case&actor=USER-OR-OP",
+      headers: {
+        "x-user-id": "USER-AUDITOR"
+      }
+    });
+
+    expect(filtered.statusCode).toBe(200);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].entityId).toBe("SURG-SYN-AUDIT-001");
+    expect(exported.statusCode).toBe(200);
+    expect(exported.headers["content-type"]).toContain("application/x-ndjson");
+    expect(exported.body).toContain("\"action\":\"clinical.synthetic_case\"");
+  });
+
   it("updates remote endpoint authorization", async () => {
     const app = await createApp();
     const original = (await app.inject({ method: "GET", url: "/api/topology" })).json();

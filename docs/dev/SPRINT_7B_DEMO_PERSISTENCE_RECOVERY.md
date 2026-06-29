@@ -63,8 +63,8 @@ Automated checks cover:
 
 ## Next Sprint
 
-The next useful increment is browser-level end-to-end validation:
+The next useful increment is audit evidence export:
 
-- start API and web servers from scripts
-- drive the web console through route, synthetic case, recording and audit workflows
-- capture a minimal screenshot or trace artifact for release evidence
+- filter audit logs by actor, action and entity
+- export matching entries for release review
+- keep audit read operations behind `audit:read`

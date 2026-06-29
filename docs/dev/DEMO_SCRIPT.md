@@ -42,7 +42,7 @@ Open:
 
 6. Quality and release readiness
 
-   In the quality section, acknowledge the seeded alert. Show recent audit logs and status events as evidence that high-risk actions are traceable. For a technical audience, export the topology backup endpoint and restore it after a reset.
+   In the quality section, acknowledge the seeded alert. Show recent audit logs and status events as evidence that high-risk actions are traceable. For a technical audience, filter and export the audit log, then export the topology backup endpoint and restore it after a reset.
 
 ## Closing Message / 收尾话术
 
