@@ -34,7 +34,7 @@ Open:
 
 4. Recording and media
 
-   Start a recording for the demo surgery, then stop it. Show that the media asset list receives a new generated asset.
+   Use the synthetic demo patient and surgery, start a recording, then stop it. Show that the media asset list receives a new generated asset.
 
 5. Teaching and remote collaboration
 

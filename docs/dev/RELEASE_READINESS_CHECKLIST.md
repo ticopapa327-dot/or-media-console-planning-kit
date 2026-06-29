@@ -14,6 +14,7 @@
 - [ ] Room, device and connection edits persist through the API repository.
 - [ ] Video route creation, conflict detection and disconnect work.
 - [ ] Patient, surgery, recording and media asset workflows work.
+- [ ] HIS/EMR patient lookup is not required for the current MVP; patient data used in demos is synthetic or manually entered.
 - [ ] Teaching meetings, members, remote authorization and audio controls work.
 - [ ] Local operator roles block unauthorized high-risk actions.
 - [ ] Alerts can be acknowledged and resolved.

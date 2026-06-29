@@ -8,6 +8,8 @@
 
 本仓库不包含任何原始厂商说明书、真实患者数据、生产配置、密钥或第三方厂商可识别信息。所有第三方厂商名称已做脱敏处理，仅保留能力归纳和工程方法。
 
+当前 MVP 暂不支持从 HIS/EMR 获取患者信息；演示和测试仅使用手动录入或合成假数据。后续真实项目可在医院接口条件明确后再接入 HIS/EMR/PACS。
+
 ### 适合谁阅读
 
 - 有丰富行业经验，想把经验产品化的创业者或产品负责人。
@@ -77,6 +79,8 @@ pnpm dev
 This repository is a public planning kit for a digital operating-room media control system. It demonstrates how Codex can help convert domain expertise, device-integration knowledge, and field engineering experience into software-engineering assets that are buildable, testable, and deliverable.
 
 This repository does not include original vendor manuals, real patient data, production configuration, secrets, or identifiable third-party vendor information. All third-party vendor names have been anonymized. Only capability summaries and engineering methods are retained.
+
+The current MVP does not retrieve patient information from HIS/EMR. Demos and tests use manual entry or synthetic data only. Real HIS/EMR/PACS integration should be added later after site-specific interface conditions are confirmed.
 
 ### Who This Is For
 
