@@ -11,6 +11,7 @@ import {
   Save,
   Server,
   ShieldCheck,
+  Sparkles,
   Trash2,
   Workflow
 } from "lucide-react";
@@ -38,6 +39,7 @@ import type {
   Room,
   RoomType,
   RouteSession,
+  SyntheticCaseRequest,
   SurgeryCase,
   SurgeryStatus,
   TopologyCatalog,
@@ -63,6 +65,7 @@ import {
   failRecording,
   fetchSession,
   fetchTopology,
+  generateSyntheticCase,
   pauseRecording,
   resetTopology,
   resolveAlert,
@@ -294,7 +297,8 @@ function createPatientDraft(): Patient {
     name: "",
     sex: "未指定",
     age: 0,
-    department: ""
+    department: "",
+    dataSource: "manual"
   };
 }
 
@@ -306,7 +310,18 @@ function createSurgeryDraft(roomId: string): SurgeryCase {
     scheduledAt: new Date().toISOString(),
     procedureName: "",
     surgeon: "",
-    status: "scheduled"
+    status: "scheduled",
+    dataSource: "manual"
+  };
+}
+
+function createSyntheticCaseDraft(roomId: string): SyntheticCaseRequest {
+  return {
+    roomId,
+    seed: "",
+    procedureName: "合成演示术式",
+    surgeon: "演示医生",
+    department: "演示科室"
   };
 }
 
@@ -349,6 +364,7 @@ export function App() {
   const [routeDraft, setRouteDraft] = useState(createRouteDraft);
   const [patientDraft, setPatientDraft] = useState<Patient>(createPatientDraft);
   const [surgeryDraft, setSurgeryDraft] = useState<SurgeryCase>(() => createSurgeryDraft(defaultRoomId));
+  const [syntheticCaseDraft, setSyntheticCaseDraft] = useState<SyntheticCaseRequest>(() => createSyntheticCaseDraft(defaultRoomId));
   const [recordingDraft, setRecordingDraft] = useState(createRecordingDraft);
   const [meetingDraft, setMeetingDraft] = useState(() => createMeetingDraft(defaultRoomId));
   const [memberDraft, setMemberDraft] = useState<MeetingMember>(createMemberDraft);
@@ -405,6 +421,7 @@ export function App() {
       setRoomDraft(selectedRoom);
       setDeviceDraft(createDeviceDraft(selectedRoom.id));
       setSurgeryDraft((current) => ({ ...current, roomId: selectedRoom.id }));
+      setSyntheticCaseDraft((current) => ({ ...current, roomId: selectedRoom.id }));
       setMeetingDraft((current) => ({ ...current, roomId: selectedRoom.id }));
     }
   }, [selectedRoom?.id]);
@@ -584,7 +601,7 @@ export function App() {
       <section className="content">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Sprint 1 · 拓扑配置管理</p>
+            <p className="eyebrow">Sprint 7A · 合成病例闭环</p>
             <h1>数字化手术室媒体控制台</h1>
           </div>
           <div className="topActions">
@@ -694,6 +711,60 @@ export function App() {
                 <p className="eyebrow">病例</p>
                 <h2>手术资料</h2>
               </div>
+              <div className="sectionMeta">
+                <span className="pill subtle">HIS/EMR 未接入</span>
+                <span className="pill subtle">手动/合成数据</span>
+              </div>
+            </div>
+
+            <div className="formGrid caseForm syntheticCaseForm">
+              <label className="field">
+                <span>演示编号</span>
+                <input
+                  placeholder="自动生成"
+                  value={syntheticCaseDraft.seed ?? ""}
+                  onChange={(event) => setSyntheticCaseDraft({ ...syntheticCaseDraft, seed: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>术式</span>
+                <input
+                  value={syntheticCaseDraft.procedureName ?? ""}
+                  onChange={(event) => setSyntheticCaseDraft({ ...syntheticCaseDraft, procedureName: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>医生</span>
+                <input
+                  value={syntheticCaseDraft.surgeon ?? ""}
+                  onChange={(event) => setSyntheticCaseDraft({ ...syntheticCaseDraft, surgeon: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>科室</span>
+                <input
+                  value={syntheticCaseDraft.department ?? ""}
+                  onChange={(event) => setSyntheticCaseDraft({ ...syntheticCaseDraft, department: event.target.value })}
+                />
+              </label>
+              <div className="buttonRow">
+                <button
+                  onClick={() =>
+                    perform(async () => {
+                      const response = await generateSyntheticCase({
+                        ...syntheticCaseDraft,
+                        roomId: selectedRoom?.id ?? syntheticCaseDraft.roomId
+                      });
+                      setSyntheticCaseDraft((current) => ({ ...current, seed: "" }));
+                      return response;
+                    }, "合成病例已生成")
+                  }
+                  type="button"
+                >
+                  <Sparkles aria-hidden="true" />
+                  生成合成病例
+                </button>
+              </div>
             </div>
 
             <div className="formGrid caseForm">
@@ -802,7 +873,9 @@ export function App() {
                 return (
                   <article className="caseRow" key={surgery.id}>
                     <strong>{surgery.procedureName}</strong>
-                    <span>{patient?.name ?? surgery.patientId}</span>
+                    <span>
+                      {patient?.name ?? surgery.patientId} · {patient?.dataSource === "synthetic" || surgery.dataSource === "synthetic" ? "合成" : "手动"}
+                    </span>
                     <em>{surgeryStatusText(surgery.status)}</em>
                   </article>
                 );

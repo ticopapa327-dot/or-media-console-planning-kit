@@ -310,6 +310,19 @@ nav {
   font-size: 22px;
 }
 
+.sectionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.pill.subtle {
+  background: #f5faf8;
+  border-color: #cddbd7;
+  color: #52656e;
+}
+
 .description {
   color: #52656e;
   margin: 0 0 18px;
@@ -393,6 +406,14 @@ nav {
   display: grid;
   gap: 8px;
   margin: -4px 0 18px;
+}
+
+.syntheticCaseForm {
+  background: #f8fbfb;
+  border: 1px solid #dbe4e4;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  padding: 14px;
 }
 
 .caseRow {

@@ -34,7 +34,7 @@ Open:
 
 4. Recording and media
 
-   Use the synthetic demo patient and surgery, start a recording, then stop it. Show that the media asset list receives a new generated asset.
+   Generate a synthetic case in the case section, start a recording for that surgery, then stop it. Show that the media asset list receives a new generated asset and that the audit trail records the synthetic case and recording actions.
 
 5. Teaching and remote collaboration
 
@@ -48,4 +48,4 @@ Open:
 
 This repository is not a finished hospital production system. It is a structured product starting point: requirements, architecture, equipment topology, runnable API, web console, tests, CI, release checklist and demo path are already aligned.
 
-For developers, the next valuable step is authentication, role-based authorization, database persistence and browser end-to-end testing.
+For developers, the next valuable step is demo-state persistence, backup/restore support and browser end-to-end testing.

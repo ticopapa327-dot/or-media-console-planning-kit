@@ -38,6 +38,8 @@ export type MediaAssetType = "video" | "snapshot" | "document";
 
 export type ChecksumStatus = "pending" | "verified" | "failed";
 
+export type ClinicalDataSource = "manual" | "synthetic";
+
 export type UserRole = "or_operator" | "teaching_user" | "remote_expert" | "device_engineer" | "admin" | "auditor";
 
 export type PermissionKey =
@@ -177,6 +179,7 @@ export interface Patient {
   sex?: string;
   age?: number;
   department?: string;
+  dataSource?: ClinicalDataSource;
 }
 
 export interface SurgeryCase {
@@ -187,6 +190,16 @@ export interface SurgeryCase {
   procedureName: string;
   surgeon: string;
   status: SurgeryStatus;
+  dataSource?: ClinicalDataSource;
+}
+
+export interface SyntheticCaseRequest {
+  roomId: string;
+  seed?: string;
+  scheduledAt?: string;
+  procedureName?: string;
+  surgeon?: string;
+  department?: string;
 }
 
 export interface RecordingTask {

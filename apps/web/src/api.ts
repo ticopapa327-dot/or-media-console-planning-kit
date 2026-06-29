@@ -14,6 +14,7 @@ import {
   type RemoteEndpoint,
   type Room,
   type RouteSession,
+  type SyntheticCaseRequest,
   type SurgeryCase,
   type TopologyCatalog,
   type TopologySummary,
@@ -182,6 +183,13 @@ export async function createPatient(patient: Patient): Promise<TopologyResponse>
   return sendTopologyRequest("/api/clinical/patients", {
     method: "POST",
     body: JSON.stringify(patient)
+  });
+}
+
+export async function generateSyntheticCase(request: SyntheticCaseRequest): Promise<TopologyResponse> {
+  return sendTopologyRequest("/api/clinical/synthetic-case", {
+    method: "POST",
+    body: JSON.stringify(request)
   });
 }
 

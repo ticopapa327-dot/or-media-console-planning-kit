@@ -19,6 +19,7 @@ import type {
   Room,
   RouteSession,
   SignalSource,
+  SyntheticCaseRequest,
   SystemAlert,
   SurgeryCase,
   UserAccount
@@ -316,46 +317,86 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
 
   app.get("/api/clinical/patients", async () => repository.getCatalog().patients);
 
+  app.post<{ Body: SyntheticCaseRequest }>("/api/clinical/synthetic-case", async (request, reply) =>
+    withRepositoryError(reply, () => {
+      const { patient, surgery } = createSyntheticCase(request.body, repository);
+
+      repository.upsertPatient(patient);
+      repository.upsertSurgery(surgery);
+
+      return auditedResponse(
+        repository,
+        auditLog(request, repository, "clinical.synthetic_case", "surgery", surgery.id, `合成病例 ${surgery.id} 已生成`, {
+          synthetic: true,
+          patientId: patient.id,
+          roomId: surgery.roomId
+        })
+      );
+    })
+  );
+
   app.post<{ Body: Patient }>("/api/clinical/patients", async (request, reply) =>
-    withRepositoryError(reply, () => topologyResponse(repository.upsertPatient(request.body), repository))
+    withRepositoryError(reply, () => {
+      const patient = withPatientDefaults(request.body);
+
+      repository.upsertPatient(patient);
+      return auditedResponse(repository, auditLog(request, repository, "patient.upsert", "patient", patient.id, `患者 ${patient.id} 已保存`));
+    })
   );
 
   app.put<{ Params: { patientId: string }; Body: Patient }>("/api/clinical/patients/:patientId", async (request, reply) =>
-    withRepositoryError(reply, () =>
-      topologyResponse(
-        repository.upsertPatient({
+    withRepositoryError(reply, () => {
+      const patient = withPatientDefaults({
           ...request.body,
           id: request.params.patientId
-        }),
-        repository
-      )
-    )
+        });
+
+      repository.upsertPatient(patient);
+      return auditedResponse(repository, auditLog(request, repository, "patient.upsert", "patient", patient.id, `患者 ${patient.id} 已保存`));
+    })
   );
 
   app.delete<{ Params: { patientId: string } }>("/api/clinical/patients/:patientId", async (request, reply) =>
-    withRepositoryError(reply, () => topologyResponse(repository.deletePatient(request.params.patientId), repository))
+    withRepositoryError(reply, () => {
+      repository.deletePatient(request.params.patientId);
+      return auditedResponse(
+        repository,
+        auditLog(request, repository, "patient.delete", "patient", request.params.patientId, `患者 ${request.params.patientId} 已删除`)
+      );
+    })
   );
 
   app.get("/api/clinical/surgeries", async () => repository.getCatalog().surgeries);
 
   app.post<{ Body: SurgeryCase }>("/api/clinical/surgeries", async (request, reply) =>
-    withRepositoryError(reply, () => topologyResponse(repository.upsertSurgery(request.body), repository))
+    withRepositoryError(reply, () => {
+      const surgery = withSurgeryDefaults(request.body);
+
+      repository.upsertSurgery(surgery);
+      return auditedResponse(repository, auditLog(request, repository, "surgery.upsert", "surgery", surgery.id, `手术 ${surgery.id} 已保存`));
+    })
   );
 
   app.put<{ Params: { surgeryId: string }; Body: SurgeryCase }>("/api/clinical/surgeries/:surgeryId", async (request, reply) =>
-    withRepositoryError(reply, () =>
-      topologyResponse(
-        repository.upsertSurgery({
+    withRepositoryError(reply, () => {
+      const surgery = withSurgeryDefaults({
           ...request.body,
           id: request.params.surgeryId
-        }),
-        repository
-      )
-    )
+        });
+
+      repository.upsertSurgery(surgery);
+      return auditedResponse(repository, auditLog(request, repository, "surgery.upsert", "surgery", surgery.id, `手术 ${surgery.id} 已保存`));
+    })
   );
 
   app.delete<{ Params: { surgeryId: string } }>("/api/clinical/surgeries/:surgeryId", async (request, reply) =>
-    withRepositoryError(reply, () => topologyResponse(repository.deleteSurgery(request.params.surgeryId), repository))
+    withRepositoryError(reply, () => {
+      repository.deleteSurgery(request.params.surgeryId);
+      return auditedResponse(
+        repository,
+        auditLog(request, repository, "surgery.delete", "surgery", request.params.surgeryId, `手术 ${request.params.surgeryId} 已删除`)
+      );
+    })
   );
 
   app.get("/api/recordings", async () => repository.getCatalog().recordingTasks);
@@ -662,6 +703,66 @@ export async function registerTopologyRoutes(app: FastifyInstance, repository: T
   );
 
   app.get("/api/status-events", async () => repository.getCatalog().statusEvents);
+}
+
+function createSyntheticCase(
+  request: SyntheticCaseRequest,
+  repository: TopologyRepository
+): { patient: Patient; surgery: SurgeryCase } {
+  const roomId = request.roomId || "room-or-standard";
+  const catalog = repository.getCatalog();
+
+  if (!catalog.rooms.some((room) => room.id === roomId)) {
+    throw new RepositoryError(404, "ROOM_NOT_FOUND", `Room ${roomId} was not found`);
+  }
+
+  const suffix = normalizeSyntheticSeed(request.seed ?? createRuntimeId("CASE"));
+  const patient: Patient = {
+    id: `PAT-SYN-${suffix}`,
+    medicalRecordNo: `SYN-MRN-${suffix}`,
+    name: `合成患者-${suffix}`,
+    sex: "未指定",
+    age: 0,
+    department: request.department?.trim() || "演示科室",
+    dataSource: "synthetic"
+  };
+  const surgery: SurgeryCase = {
+    id: `SURG-SYN-${suffix}`,
+    patientId: patient.id,
+    roomId,
+    scheduledAt: request.scheduledAt ?? new Date().toISOString(),
+    procedureName: request.procedureName?.trim() || "合成演示术式",
+    surgeon: request.surgeon?.trim() || "演示医生",
+    status: "scheduled",
+    dataSource: "synthetic"
+  };
+
+  return { patient, surgery };
+}
+
+function withPatientDefaults(patient: Patient): Patient {
+  return {
+    dataSource: "manual",
+    ...patient
+  };
+}
+
+function withSurgeryDefaults(surgery: SurgeryCase): SurgeryCase {
+  return {
+    dataSource: "manual",
+    ...surgery
+  };
+}
+
+function normalizeSyntheticSeed(seed: string): string {
+  const normalized = seed
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 28);
+
+  return normalized || createRuntimeId("CASE").replace(/^CASE-/, "");
 }
 
 function topologyResponse(_: unknown, repository: TopologyRepository) {

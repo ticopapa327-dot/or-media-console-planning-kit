@@ -68,7 +68,14 @@ Automated checks cover:
 
 ## Next Sprint
 
-Sprint 7 should decide whether to go deeper into production identity or persistence first:
+Sprint 7A should lock down the current clinical-data boundary before production identity or persistence work:
 
-- production identity path: password/session, SSO bridge, CSRF/session expiry, per-route UI disablement
-- persistence path: PostgreSQL repository implementation, migrations, seed loader and backup/restore scripts
+- keep HIS/EMR patient lookup outside the current MVP
+- generate clearly synthetic patient and surgery records for demos and tests
+- audit manual and synthetic clinical-data changes
+
+After that, Sprint 7B can continue with persistence:
+
+- file-backed or database-backed repository implementation
+- migrations or seed loader
+- backup/restore scripts

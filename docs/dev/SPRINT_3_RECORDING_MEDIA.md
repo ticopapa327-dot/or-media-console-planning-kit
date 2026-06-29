@@ -39,6 +39,7 @@ The API rejects:
 Clinical endpoints:
 
 - `GET /api/clinical/patients`
+- `POST /api/clinical/synthetic-case`
 - `POST /api/clinical/patients`
 - `PUT /api/clinical/patients/:patientId`
 - `DELETE /api/clinical/patients/:patientId`

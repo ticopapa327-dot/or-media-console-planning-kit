@@ -15,6 +15,7 @@
 - [ ] Video route creation, conflict detection and disconnect work.
 - [ ] Patient, surgery, recording and media asset workflows work.
 - [ ] HIS/EMR patient lookup is not required for the current MVP; patient data used in demos is synthetic or manually entered.
+- [ ] Synthetic case generation creates patient and surgery records with `dataSource = synthetic` and writes audit evidence.
 - [ ] Teaching meetings, members, remote authorization and audio controls work.
 - [ ] Local operator roles block unauthorized high-risk actions.
 - [ ] Alerts can be acknowledged and resolved.
@@ -42,6 +43,7 @@
 - [ ] API health endpoint returns `200`.
 - [ ] Web console returns `200`.
 - [ ] Standard topology validation returns an empty issue list.
+- [ ] A synthetic case can be generated for the selected room.
 - [ ] A route can be created and disconnected.
 - [ ] A recording can start and stop, creating a media asset.
 - [ ] A teaching meeting can be created and closed.

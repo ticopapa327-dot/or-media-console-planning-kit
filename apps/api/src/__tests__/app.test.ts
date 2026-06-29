@@ -244,6 +244,32 @@ describe("API app", () => {
     expect(body.summary.surgeryCount).toBe(2);
   });
 
+  it("generates a synthetic patient and surgery without a HIS dependency", async () => {
+    const app = await createApp();
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/clinical/synthetic-case",
+      payload: {
+        roomId: "room-or-standard",
+        seed: "qa-001",
+        scheduledAt: "2026-06-29T11:00:00.000Z",
+        procedureName: "合成测试术式",
+        surgeon: "演示医生",
+        department: "演示科室"
+      }
+    });
+    const body = response.json();
+    const patient = body.catalog.patients.find((candidate: { id: string }) => candidate.id === "PAT-SYN-QA-001");
+    const surgery = body.catalog.surgeries.find((candidate: { id: string }) => candidate.id === "SURG-SYN-QA-001");
+
+    expect(response.statusCode).toBe(200);
+    expect(patient?.medicalRecordNo).toBe("SYN-MRN-QA-001");
+    expect(patient?.dataSource).toBe("synthetic");
+    expect(surgery?.patientId).toBe("PAT-SYN-QA-001");
+    expect(surgery?.dataSource).toBe("synthetic");
+    expect(body.catalog.auditLogs.some((entry: { action: string }) => entry.action === "clinical.synthetic_case")).toBe(true);
+  });
+
   it("runs the recording task state machine and creates media on stop", async () => {
     const app = await createApp();
     const started = await app.inject({

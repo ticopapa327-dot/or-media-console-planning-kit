@@ -701,7 +701,8 @@ export const STANDARD_TOPOLOGY: TopologyCatalog = {
       name: "演示患者",
       sex: "未指定",
       age: 0,
-      department: "演示科室"
+      department: "演示科室",
+      dataSource: "synthetic"
     }
   ],
   surgeries: [
@@ -712,7 +713,8 @@ export const STANDARD_TOPOLOGY: TopologyCatalog = {
       scheduledAt: "2026-06-29T08:00:00.000Z",
       procedureName: "演示术式",
       surgeon: "演示医生",
-      status: "scheduled"
+      status: "scheduled",
+      dataSource: "synthetic"
     }
   ],
   recordingTasks: [
